@@ -65,4 +65,11 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log('Server listening on port', PORT);
+  const hasBot = !!process.env.BOT_TOKEN;
+  const hasSupabaseUrl = !!process.env.SUPABASE_URL;
+  const hasSupabaseKey = !!process.env.SUPABASE_ANON_KEY;
+  console.log('Env: BOT_TOKEN=' + (hasBot ? 'ok' : 'MISSING') + ' SUPABASE_URL=' + (hasSupabaseUrl ? 'ok' : 'MISSING') + ' SUPABASE_ANON_KEY=' + (hasSupabaseKey ? 'ok' : 'MISSING'));
+  if (!hasBot || !hasSupabaseUrl || !hasSupabaseKey) {
+    console.error('Set Variables in Railway (Fit_3.0 → Variables) and Apply/Redeploy');
+  }
 });
