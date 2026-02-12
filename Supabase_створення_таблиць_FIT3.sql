@@ -163,3 +163,12 @@ CREATE POLICY "Allow all for anon" ON workout_schedule FOR ALL USING (true) WITH
 CREATE POLICY "Allow all for anon" ON measurements_history FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all for anon" ON bot_training_data FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all for anon" ON logs FOR ALL USING (true) WITH CHECK (true);
+
+-- 11. FSM State для бота (Node.js хостинг; замість PropertiesService у GAS)
+CREATE TABLE IF NOT EXISTS bot_state (
+  chat_id     text NOT NULL PRIMARY KEY,
+  data        jsonb NOT NULL DEFAULT '{}',
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE bot_state ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all for anon" ON bot_state FOR ALL USING (true) WITH CHECK (true);
