@@ -1,0 +1,3576 @@
+# БІЗНЕС-ЛОГІКА GYM 3.0
+
+**Версія:** 1.1  
+**Дата:** 02.02.2026  
+**Призначення:** Канонічний опис бізнес-правил, алгоритмів та логіки системи FIT 3.0
+
+---
+
+## 📋 ЗМІСТ
+
+1. [Система реєстрації та інвайтів](#1-система-реєстрації-та-інвайтів)
+2. [Структура таблиці Users та ролі](#2-структура-таблиці-users-та-ролі)
+3. [Логіка тренувань (Student Mode vs Coach Mode)](#3-логіка-тренувань)
+4. [Система запису на тренування (WorkoutSchedule)](#4-система-запису-на-тренування)
+   - 4.5 [Вартість тренувань (Pricing)](#45-вартість-тренувань-pricing)
+5. [Робота з замірами (MeasurementsHistory)](#5-робота-з-замірами)
+6. [Бібліотека вправ (ExerciseLibrary)](#6-бібліотека-вправ)
+7. [Інтеграція з Google Calendar](#7-інтеграція-з-google-calendar)
+8. [FSM States та переходи](#8-fsm-states-та-переходи)
+9. [Callback_data формат](#9-callback_data-формат)
+10. [Робота з містами (CityList)](#10-робота-з-містами)
+11. [Програми тренувань (TrainingPlans)](#11-програми-тренувань)
+12. [Система логування (Logs)](#12-система-логування)
+13. [СИСТЕМА ЗВИТІВ ТРЕНЕРА)
+14. [Критичні бізнес-правила](#13-критичні-бізнес-правила)
+15. [Формат callback_data (гібридний підхід)](#14-формат-callback_data)
+16. [ERROR HANDLING MAP - КАРТА ОБРОБКИ ПОМИЛОК)
+17. [АРХІТЕКТУРНІ ОБМЕЖЕННЯ (VETO RULES)
+
+
+
+============================================================================
+
+## 1. СИСТЕМА РЕЄСТРАЦІЇ ТА ІНВАЙТІВ
+
+### 1.1 Типи реєстрації
+
+**Існує 3 типи реєстрації:**
+
+#### Тип А: Класична реєстрація (без інвайту)
+- Користувач: `/start`
+- Обирає роль: `student` або `coach`
+- Заповнює анкету: FirstName, LastName, Gender, Goal, BirthDate, City
+- Для тренера додатково: Instagram, CalendarId
+- **Результат:** UserID = ChatID = Telegram ChatID (одразу реальний)
+- **CoachID:** порожній (учень без тренера)
+
+#### Тип Б: Реєстрація по інвайту (учень)
+- Тренер створює заготовку учня в боті
+- Система генерує код: `INVITE_XXXX`
+- Учень вводить код в боті
+- Система активує профіль (заміна INVITE_ на реальний ChatID)
+- **Результат:** UserID та ChatID замінюються з `INVITE_XXXX` на реальний Telegram ChatID
+- **CoachID:** вже заповнений (зв'язок з тренером встановлений)
+
+#### Тип В: Швидкий старт (Soft Registration)
+- Тільки FirstName + Role
+- Решта полів заповнюються пізніше через Profile
+- **Результат:** Мінімальний профіль, можна відразу починати тренування
+
+---
+
+### 1.2 Створення інвайту тренером
+
+**Модуль:** `Registration.gs`  
+**Функція:** `handleCoachAddStudent(coachChatId, fullName)`
+
+**Крок 1: Введення даних тренером**
+```
+UI Тренера:
+➕ Додавання нового учня
+
+Напишіть дані учня одним повідомленням у форматі:
+`Ім'я Прізвище`
+
+Приклад: `Олена Петренко`
+```
+
+**Крок 2: Парсинг імені**
+```javascript
+// Введення: "Марія Коваль"
+const parts = fullName.trim().split(' ');
+const firstName = parts[0]; // "Марія"
+const lastName = parts.slice(1).join(' '); // "Коваль"
+
+// Валідація:
+if (parts.length < 2) {
+  return "Введіть повне ім'я (ім'я та прізвище)";
+}
+```
+
+**Крок 3: Генерація унікального коду**
+```javascript
+// Функція: User.createStudentByInvite(coachChatId, firstName, lastName)
+
+let inviteCode;
+let attempts = 0;
+const MAX_ATTEMPTS = 5;
+
+do {
+  const suffix = Utilities.getUuid().split('-')[0]; // "A3F7"
+  inviteCode = "INVITE_" + suffix; // "INVITE_A3F7"
+  
+  // Перевірка унікальності
+  const exists = Sheets.findUserByInviteCode(inviteCode);
+  if (!exists) break;
+  
+  attempts++;
+} while (attempts < MAX_ATTEMPTS);
+
+if (attempts === MAX_ATTEMPTS) {
+  throw new Error("Не вдалося згенерувати унікальний код");
+}
+```
+
+**Крок 4: Створення заготовки в Users**
+```javascript
+const userData = {
+  createdAt: new Date(),
+  userId: inviteCode,        // "INVITE_A3F7"
+  chatId: inviteCode,        // "INVITE_A3F7" ← КРИТИЧНО: однакові!
+  firstName: firstName,
+  lastName: lastName,
+  city: null,
+  role: "student",
+  gender: null,
+  age: null,
+  goal: "keep",              // Значення за замовчуванням
+  coachId: coachChatId,      // Зв'язок з тренером
+  birthDate: null,
+  height: null,
+  weight: null,
+  waist: null,
+  hip: null,
+  glutes: null,
+  arm: null,
+  instagram: null,
+  calendarId: null
+};
+
+Sheets.insertUser(userData);
+```
+
+**Крок 5: Відправка коду тренеру**
+```javascript
+const message = `✅ **Учня створено!**
+
+Передайте йому цей код доступу:
+\`${inviteCode}\`
+
+Коли він введе його у боті, його профіль автоматично 
+прив'яжеться до вас.`;
+
+Helpers.safeSend(coachChatId, message);
+State.clearState(coachChatId);
+Menu.showMainMenu(coachChatId);
+```
+
+**КРИТИЧНІ МОМЕНТИ:**
+- ✅ UserID і ChatID **ОДНАКОВІ** = маркер незавершеної реєстрації
+- ✅ CoachID вже заповнений (зв'язок встановлений)
+- ✅ Код ОБОВ'ЯЗКОВО має бути унікальним
+- ✅ Формат коду: `INVITE_` + 4 символи (букви/цифри)
+
+---
+
+### 1.4 Вибір тренера тренером
+
+**Мета:** дозволити тренеру обрати свого тренера (як у студента).
+
+**UI (меню тренера):**
+- `👨‍🏫 Обрати тренера` (якщо coachId порожній)
+- `👨‍🏫 Мій тренер` (якщо coachId уже встановлено)
+
+**Алгоритм:**
+1. Показати список тренерів (Users.role = "coach", крім самого користувача).
+2. При виборі тренера → `User.updateField(chatId, 'COACH_ID', coachId)`.
+3. Показати профіль тренера (як у студента).
+
+---
+
+### 1.3 Активація інвайту учнем
+
+**Модуль:** `Registration.gs`  
+**Функція:** `handleInviteInput(studentChatId, inputText)`
+
+**Крок 1: Введення коду**
+```
+UI Учня:
+Введи код, який надав твій тренер 
+(наприклад: INVITE_777):
+
+[🔙 Назад]
+```
+
+**Крок 2: Валідація вводу**
+```javascript
+// Очищення та нормалізація
+const inviteCode = inputText.trim().toUpperCase();
+
+// Перевірка формату
+if (!inviteCode.startsWith('INVITE_')) {
+  return "Невірний формат коду. Код має починатися з INVITE_";
+}
+```
+
+**Крок 3: Пошук та валідація коду**
+```javascript
+// Функція: User.activateInviteCode(studentChatId, inviteCode)
+
+// 1. Знайти користувача з таким UserID
+const userRow = Sheets.findUserByInviteCode(inviteCode);
+
+if (!userRow) {
+  throw new Error("Код не існує");
+}
+
+// 2. Перевірити чи код вже активовано
+// Активований = ChatID != UserID
+if (userRow.chatId !== inviteCode) {
+  throw new Error("Код вже використано");
+}
+```
+
+**Крок 4: Заміна INVITE_ на реальний ChatID**
+```javascript
+// Функція: Sheets.replaceInviteWithChatId(inviteCode, realChatId)
+
+// Знайти індекс рядка
+const sheet = SpreadsheetApp.openById(CONSTANTS.SPREADSHEET_ID).getSheetByName('Users');
+const userIdColumn = sheet.getRange('B3:B').getValues(); // Колонка B = UserID
+
+let rowIndex = -1;
+for (let i = 0; i < userIdColumn.length; i++) {
+  if (userIdColumn[i][0] === inviteCode) {
+    rowIndex = i + 3; // +3 бо дані з 3-го рядка
+    break;
+  }
+}
+
+if (rowIndex === -1) return false;
+
+// Оновлення:
+// Колонка A (CreatedAt) - момент активації
+sheet.getRange(rowIndex, 1).setValue(new Date());
+
+// Колонка B (UserID) - заміна
+sheet.getRange(rowIndex, 2).setValue(realChatId);
+
+// Колонка C (ChatID) - заміна
+sheet.getRange(rowIndex, 3).setValue(realChatId);
+
+SpreadsheetApp.flush();
+return true;
+```
+
+**Крок 5: Завершення активації**
+```javascript
+// Очищення стану
+State.clearState(studentChatId);
+
+// Повідомлення
+const message = `Код прийнято! ✅
+Ти успішно приєднався до команди.`;
+
+Helpers.safeSend(studentChatId, message);
+
+// Показ меню учня
+Menu.showMainMenu(studentChatId);
+```
+
+**РЕЗУЛЬТАТ В БД:**
+
+**Було:**
+```
+| CreatedAt  | UserID       | ChatID       | FirstName | Role    | CoachID   |
+|------------|--------------|--------------|-----------|---------|-----------|
+| 31.01.2026 | INVITE_A3F7  | INVITE_A3F7  | Марія     | student | 111222333 |
+```
+
+**Стало:**
+```
+| CreatedAt  | UserID      | ChatID      | FirstName | Role    | CoachID   |
+|------------|-------------|-------------|-----------|---------|-----------|
+| 01.02.2026 | 987654321   | 987654321   | Марія     | student | 111222333 |
+```
+
+**КРИТИЧНІ МОМЕНТИ:**
+- ✅ Перевірка `ChatID === UserID === inviteCode` = ознака неактивованого інвайту
+- ✅ Після заміни обліковка стає повноцінною
+- ✅ CoachID зберігається (зв'язок не втрачається)
+- ✅ CreatedAt оновлюється на момент активації
+
+---
+
+### 1.4 Sheets.gs функції для роботи з інвайтами
+
+#### Функція: `findUserByInviteCode(inviteCode)`
+
+**Призначення:** Пошук користувача по інвайт-коду
+
+**Сигнатура:**
+```javascript
+function findUserByInviteCode(inviteCode)
+```
+
+**Вхідні дані:**
+- `inviteCode` (string): Код формату "INVITE_XXXX"
+
+**Алгоритм:**
+1. Отримати лист Users
+2. Прочитати колонку B (UserID) з рядка 3 до кінця
+3. Знайти рядок де UserID === inviteCode
+4. Якщо знайдено - прочитати весь рядок
+5. Повернути об'єкт userData
+
+**Повертає:**
+```javascript
+// Якщо знайдено:
+{
+  rowIndex: 5,
+  userData: {
+    createdAt: Date,
+    userId: "INVITE_A3F7",
+    chatId: "INVITE_A3F7",
+    firstName: "Марія",
+    lastName: "Коваль",
+    // ... всі поля Users
+  }
+}
+
+// Якщо не знайдено:
+null
+```
+
+---
+
+#### Функція: `replaceInviteWithChatId(inviteCode, realChatId)`
+
+**Призначення:** Заміна INVITE_ на реальний Telegram ChatID
+
+**Сигнатура:**
+```javascript
+function replaceInviteWithChatId(inviteCode, realChatId)
+```
+
+**Вхідні дані:**
+- `inviteCode` (string): "INVITE_XXXX"
+- `realChatId` (number): Реальний Telegram ChatID
+
+**Алгоритм:**
+1. Знайти рядок через findUserByInviteCode(inviteCode)
+2. **Критична перевірка:** ChatID === inviteCode (якщо ні - код вже активовано)
+3. Оновити:
+   - Колонка A (CreatedAt): new Date()
+   - Колонка B (UserID): inviteCode → realChatId
+   - Колонка C (ChatID): inviteCode → realChatId
+4. SpreadsheetApp.flush()
+
+**Повертає:**
+- `true` - успішно замінено
+- `false` - помилка (не знайдено або вже активовано)
+
+**Критично:** Перевірка `chatId === inviteCode` запобігає повторній активації!
+
+---
+
+#### Функція: `isInviteActivated(inviteCode)`
+
+**Призначення:** Перевірка чи код вже активовано
+
+**Сигнатура:**
+```javascript
+function isInviteActivated(inviteCode)
+```
+
+**Вхідні дані:**
+- `inviteCode` (string): "INVITE_XXXX"
+
+**Алгоритм:**
+1. Знайти користувача через findUserByInviteCode
+2. Якщо не знайдено - return null (код не існує)
+3. Порівняти: userData.chatId !== inviteCode
+
+**Повертає:**
+- `true` - код активовано (ChatID вже реальний)
+- `false` - код не активовано (ChatID === inviteCode)
+- `null` - код не існує
+
+**Використання:**
+```javascript
+const status = Sheets.isInviteActivated("INVITE_A3F7");
+
+if (status === null) {
+  return "Код не існує";
+} else if (status === true) {
+  return "Код вже використано";
+} else {
+  // Можна активувати
+  Sheets.replaceInviteWithChatId("INVITE_A3F7", realChatId);
+}
+```
+
+=====================================================================================================
+
+## 2. СТРУКТУРА ТАБЛИЦІ USERS ТА РОЛІ
+
+### 2.1 Канонічна структура (A-T, 20 колонок)
+
+**Таблиця:** `Users`  
+**Данные начинаются:** Рядок 3  
+**Заголовки:** Рядок 1 (EN), Рядок 2 (UA/RU)
+
+| Колонка | EN Header  | Опис | Обов'язкове | Формат |
+|---------|------------|------|-------------|--------|
+| **A** | CreatedAt | Дата створення/активації | ✅ | Date |
+| **B** | UserID | Унікальний ID (може бути INVITE_) | ✅ | String/Number |
+| **C** | ChatID | Telegram ChatID (може бути INVITE_) | ✅ | String/Number |
+| **D** | FirstName | Ім'я | ✅ | String |
+| **E** | LastName | Прізвище | ❌ | String |
+| **F** | City | Місто | ❌ | String |
+| **G** | Role | Роль: student/coach | ✅ | Enum |
+| **H** | Gender | Стать: male/female | ❌ | Enum |
+| **I** | Age | Вік (автообчислення) | ❌ | Number |
+| **J** | Goal | Ціль: lose/gain/keep | ❌ | Enum |
+| **K** | CoachID | ChatID тренера | ❌ | Number |
+| **L** | BirthDate | Дата народження | ❌ | Date (ДД.ММ.РРРР) |
+| **M** | Height | Зріст (см) | ❌ | Number |
+| **N** | Weight | Вага (кг) | ❌ | Number |
+| **O** | Waist | Талія (см) | ❌ | Number |
+| **P** | Hip | Стегно (см) | ❌ | Number |
+| **Q** | Glutes | Ягодиці (см) | ❌ | Number |
+| **R** | Arm | Рука (см) | ❌ | Number |
+| **S** | Instagram | Посилання на Instagram | ❌ | String (URL) |
+| **T** | CalendarId | Email Google Calendar | ❌ | String (Email) |
+
+---
+
+### 2.2 Логіка ролей (Role)
+
+**Можливі значення:**
+- `student` - учень
+- `coach` - тренер
+
+**Відмінності:**
+
+| Функціонал | Student | Coach |
+|------------|---------|-------|
+| Може тренуватися | ✅ | ✅ |
+| Має CoachID | ✅ (якщо прикріплений) | ❌ |
+| Може створювати інвайти | ❌ | ✅ |
+| Доступ до Coach Mode | ❌ | ✅ |
+| Instagram обов'язковий | ❌ | ✅ |
+| CalendarId обов'язковий | ❌ | ✅ |
+| Може записувати учнів | ❌ | ✅ |
+
+**Немає окремих таблиць TRAINERS/STUDENTS!**
+Вся логіка в одній таблиці Users через колонку Role.
+
+---
+
+### 2.3 Поле CoachID (зв'язок Тренер-Учень)
+
+**Призначення:** Зв'язок учня з тренером
+
+**Правила:**
+- Для `student`: може бути заповнене (ChatID тренера) або порожнє
+- Для `coach`: завжди порожнє (null)
+
+**Як встановлюється:**
+1. **Через інвайт:** CoachID встановлюється автоматично при створенні інвайту
+2. **Пошук тренера:** Учень може обрати тренера з списку (функція в Menu)
+3. **Відкріплення:** Можна очистити CoachID (учень стає "вільним")
+
+**Використання:**
+
+```javascript
+// Знайти всіх учнів тренера
+function getStudentsByCoachId(coachChatId) {
+  const sheet = SpreadsheetApp.openById(CONSTANTS.SPREADSHEET_ID)
+    .getSheetByName('Users');
+  
+  const data = sheet.getRange('C3:K').getValues(); // ChatID to CoachID
+  
+  const students = [];
+  for (let i = 0; i < data.length; i++) {
+    const chatId = data[i][0];  // C
+    const role = data[i][4];     // G
+    const coachId = data[i][8];  // K
+    
+    if (role === 'student' && coachId === coachChatId) {
+      students.push({
+        chatId: chatId,
+        firstName: data[i][1],
+        lastName: data[i][2],
+        // ... інші поля
+      });
+    }
+  }
+  
+  return students;
+}
+```
+
+---
+
+### 2.4 Instagram та CalendarId (тільки для тренерів)
+
+#### Instagram (колонка S)
+
+**Обов'язково для:** coach  
+**Формат:** завжди URL!!!
+
+**Валідація:**
+```javascript
+function validateInstagram(value) {
+  if (!value || value.trim() === '') return false;
+  
+  // Приймаємо ТІЛЬКИ повний URL
+  const urlPattern = /^https?:\/\/(www\.)?instagram\.com\//;
+  
+  
+  return urlPattern.test(value);
+}
+```
+
+**Використання:**
+- Показується в профілі тренера
+- Доступне учням для контакту
+- Показується при пошуку тренера
+
+---
+
+#### CalendarId (колонка T)
+
+**Обов'язково для:** coach  
+**Формат:** Email адреса (Google Calendar ID)
+
+**Приклад:** `coach@gmail.com`
+
+**Валідація:**
+```javascript
+function validateCalendarId(value) {
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailPattern.test(value);
+}
+```
+
+**Використання:**
+- Інтеграція з Google Calendar для слотів тренувань
+- Синхронізація подій через Calendar.gs
+- Показ вільних вікон учням
+
+**Як встановлюється:**
+- При реєстрації тренера (крок після Instagram)
+- Через Profile → Налаштування
+
+
+2.5 Age (автообчислення)
+
+User.calculateAge() - СПЕЦИФІКАЦІЯ
+Призначення
+Автоматичне обчислення віку користувача на основі дати народження
+Коли викликається
+При зміні BirthDate:
+javascriptUser.updateBirthDate(chatId, birthDate) {
+  // 1. Валідація birthDate
+  // 2. Обчислення Age
+  const age = User.calculateAge(birthDate);
+  // 3. Збереження в БД
+  Sheets.updateUserField(chatId, COLUMNS.BIRTH_DATE, birthDate);
+  Sheets.updateUserField(chatId, COLUMNS.AGE, age);
+}
+При читанні профілю (опціонально):
+Можна обчислювати динамічно, але для продуктивності краще зберігати в БД.
+Реалізація
+javascriptfunction calculateAge(birthDate) {
+  // birthDate - Date Object або String "ДД.ММ.РРРР"
+  
+  let date;
+  if (birthDate instanceof Date) {
+    date = birthDate;
+  } else if (typeof birthDate === 'string') {
+    // Парсинг "15.05.1995"
+    const parts = birthDate.split('.');
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;  // Місяці від 0
+    const year = parseInt(parts[2], 10);
+    date = new Date(year, month, day);
+  } else {
+    throw new Error('Invalid birthDate format');
+  }
+  
+  const now = new Date();
+  let age = now.getFullYear() - date.getFullYear();
+  
+  // Перевірка чи день народження вже був цього року
+  const monthDiff = now.getMonth() - date.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getDate())) {
+    age--;
+  }
+  
+  return age;
+}
+Де зберігається
+В БД (колонка I: Age):
+
+Зберігається як Number
+Оновлюється при зміні BirthDate
+Може бути перераховано при читанні (якщо потрібна актуальність)
+
+Приклад використання
+javascript// При зміні дати народження в Profile
+Profile.updateBirthDate(chatId, "15.05.1995");
+  → User.updateBirthDate(chatId, "15.05.1995")
+    → age = calculateAge("15.05.1995")  // 29 (станом на 2026)
+    → Sheets.updateUserField(chatId, COLUMNS.AGE, 29)
+
+// При показі профілю
+const user = User.getByChatId(chatId);
+console.log(user.age);  // 29 (з БД)
+
+// Або динамічно (якщо потрібна точність)
+const actualAge = User.calculateAge(user.birthDate);
+Чи зберігати Age в БД?
+✅ ТАК (рекомендовано):
+
+Швидше читання (не треба обчислювати)
+Простіша логіка
+Age не змінюється часто (1 раз на рік)
+
+Коли оновлювати Age:
+
+При зміні BirthDate (обов'язково)
+Можна створити щоденний тригер (оновлювати всіх у день народження)
+Або оновлювати "лінно" при читанні профілю (якщо минув рік)
+
+====================================================================================
+
+## 3. ЛОГІКА ТРЕНУВАНЬ
+
+### 3.1 Два режими тренувань
+
+**Student Mode:**
+- Учень тренується самостійно
+- Записує дані для себе
+- Дані зберігаються з його ChatID
+
+**Coach Mode:**
+- Тренер веде тренування за учня
+- Записує дані від імені учня
+- Дані зберігаються з ChatID учня (не тренера!)
+
+---
+
+### 3.1.1 Типи тренувань учнів (Coach Group Training)
+
+**Типи:**
+- Персональна (1 учень)
+- Спліт (2 учні)
+- Тріо (3 учні)
+
+**Алгоритм:**
+1. Тренер обирає тип тренування.
+2. Система показує список учнів тренера.
+3. Тренер вводить 1/2/3 учнів (за обраним типом).
+4. Далі тренер веде тренування:
+   - вправи однакові для всіх,
+   - ваги/повтори можуть бути різні,
+   - перед записом підходу тренер обирає, для якого учня вносить дані.
+
+---
+
+### 3.1.2 Наповнення статистики проведених тренувань (WorkoutSchedule → звіти)
+
+Звіт «Кількість тренувань» (розділ 13) бере дані **тільки** з таблиці WorkoutSchedule, де **Status = COMPLETED**. Наповнення відбувається двома способами:
+
+**Спосіб 1 — із розкладу:** слот створений у WorkoutSchedule (запис на тренування або синхронізація з календарем). Тренер у «Мій розклад» натискає [✅ Підтвердити присутність] → `Sheets.updateScheduleSlotStatus(slotId, 'COMPLETED')`. Слот починає враховуватися в звіті.
+
+**Спосіб 2 — із режиму тренування (без попереднього запису):** тренер веде учня (картка учня → Почати тренування або Тренування учнів → тип → вибір учнів). При старті сесії в State зберігаються `trainingStartedAt` (дата/час старту) та `scheduleSlotIds`. При **першому** записі підходу по кожному учню система перевіряє наявність слота в WorkoutSchedule на це час (тренер + учень); якщо слоту немає — створюється новий рядок (`Sheets.insertScheduleSlot`: coachId, studentId, date, time, status = BOOKED). При натисканні [🏁 Завершити тренування] для всіх таких слотів викликається `Sheets.updateScheduleSlotStatus(slotId, 'COMPLETED')`. Ці тренування потрапляють у звіт так само, як і підтверджені по розкладу. Для спліт/тріо: один слот на кожного учня, одна дата/час (одне заняття = 2 або 3 рядки з однаковим часом).
+
+---
+
+### 3.2 Student Mode (самостійна тренування)
+
+**Вхід:** Учень → `[💪 Почати тренування]`
+
+**Потік:**
+```
+1. Menu → TRAIN_START
+2. Training.startWorkout(studentChatId)
+3. State.set(studentChatId, { 
+     step: 'selecting_exercise',
+     mode: 'STUDENT',
+     targetUserId: studentChatId  ← Сам себе
+   })
+4. Показ груп м'язів
+5. Вибір вправи
+6. Введення даних: вага, повтори
+7. Збереження в BotTrainingData:
+   - ChatID = studentChatId
+   - ExerciseID, Weight, Reps
+```
+
+**Приклад UI:**
+```
+🏋️‍♂️ **Тренування**
+
+Обери групу м'язів:
+[💪 Груди]
+[🔥 Спина]
+[🦵 Ноги]
+[🤸 Плечі]
+[💪 Руки]
+[🏋️ Прес]
+```
+
+---
+
+### 3.3 Власна тренування тренера (Тренер тренується сам)
+
+**Вхід:** Тренер → `[💪 Власне тренування]`
+
+**Суть:** Тренер може вести тренування для себе, ідентично до Student Mode
+
+**Потік:**
+```
+1. Menu → TRAIN_SELF
+2. Training.startWorkout(coachChatId)
+3. State.set(coachChatId, { 
+     step: 'selecting_exercise',
+     mode: 'SELF',
+     targetUserId: coachChatId  ← Сам себе
+   })
+4. Показ груп м'язів
+5. Вибір вправи
+6. Введення даних: вага, повтори
+7. Збереження в BotTrainingData:
+   - ChatID = coachChatId
+   - ExerciseID, Weight, Reps
+```
+
+**Приклад UI:**
+```
+🏋️‍♂️ **Моє тренування**
+
+Обери групу м'язів:
+[💪 Груди]
+[🔥 Спина]
+[🦵 Ноги]
+[🤸 Плечі]
+[💪 Руки]
+[🏋️ Прес]
+```
+
+**Відмінності від Coach Mode:**
+- `targetUserId` = coachChatId (тренер тренує себе)
+- Всі записи в БД йдуть з ChatID тренера
+- Тренер бачить в UI: "Моє тренування" (не ім'я учня)
+- Ідентична логіка як у Student Mode, але для ролі coach
+
+**Критично:**
+- Логіка тренування повністю збігається з Student Mode
+- Режим `mode: 'SELF'` відрізняється від `mode: 'COACH'`
+- Доступ тільки для користувачів з `role = 'coach'`
+
+---
+
+### 3.4 Coach Mode (тренер веде за учня)
+
+**Вхід:** Тренер → `[👥 Мої учні]` → Вибір учня → `[💪 Почати тренування]`
+
+**Потік:**
+```
+1. Menu → COACH_START_TRAINING:123456789
+2. Training.startWorkout(coachChatId, studentChatId)
+3. State.set(coachChatId, {
+     step: 'selecting_exercise',
+     mode: 'COACH',
+     targetUserId: studentChatId  ← ID учня!
+   })
+4. Тренер бачить: "Тренування для: Олексій Петренко"
+5. Тренер вибирає вправи та вводить дані
+6. Збереження в BotTrainingData:
+   - ChatID = studentChatId ← ID учня, не тренера!
+   - ExerciseID, Weight, Reps
+```
+
+**Критично:**
+- `targetUserId` в State = ID учня
+- Всі записи в БД йдуть з ChatID учня
+- Тренер бачить в UI: "Тренування для: [Ім'я учня]"
+
+---
+
+### 3.5 Таблиця BotTrainingData
+
+**Структура (A-H):**
+
+| Колонка | EN Header | Опис |
+|---------|-----------|------|
+| **A** | IDrecords | Унікальний ID запису |
+| **B** | Date | Дата виконання (timestamp) |
+| **C** | ExerciseID | ID з ExerciseLibrary |
+| **D** | Exercise | Назва вправи (кеш) |
+| **E** | Weight | Вага снаряду/тіла |
+| **F** | Reps | Кількість повторів |
+| **G** | Set | Номер підходу |
+| **H** | ChatID | ChatID користувача |
+
+**Приклад запису:**
+
+```
+| IDrecords | Date       | ExerciseID | Exercise           | Weight | Reps | Set | ChatID    |
+|-----------|------------|------------|--------------------|--------|------|-----|-----------|
+| 1001      | 31.01.2026 | 5          | Підйом на біцепс   | 15     | 8    | 1   | 123456789 |
+| 1002      | 31.01.2026 | 5          | Підйом на біцепс   | 15     | 8    | 2   | 123456789 |
+```
+
+**Функції Sheets.gs:**
+
+```javascript
+// Додати запис тренування
+insertTrainingEntry(id, date, exerciseId, exerciseName, weight, reps, set, chatId)
+
+// Отримати історію тренувань користувача
+getTrainingHistory(chatId, limit)
+
+// Отримати тренування за період
+getTrainingByDateRange(chatId, startDate, endDate)
+```
+
+---
+
+### 3.6 Круговий сет (Circuit Training)
+
+**Відмінність від одиночної вправи:**
+
+**Одинарна вправа:**
+```
+1. Вибір вправи
+2. Введення: вага повтори
+3. Збереження Set=1
+4. Повтор для Set=2, Set=3...
+```
+
+**Круговий сет:**
+```
+1. Вибір режиму: [🔄 Круговий сет]
+2. Вибір 3-5 вправ (список)
+3. Введення даних для кожної вправи
+4. Збереження всіх вправ з Set=1
+5. Повтор кругу → всі вправи Set=2
+```
+
+**Приклад UI:**
+```
+🔄 **Круговий сет**
+
+Обрані вправи:
+1️⃣ Віджимання
+2️⃣ Присідання
+3️⃣ Планка
+
+Введи дані для Віджимання:
+Формат: вага повтори
+(0 якщо без ваги)
+```
+
+**State для кругового сету:**
+```javascript
+{
+  step: 'circuit_training',
+  mode: 'CIRCUIT',
+  exercises: [
+    { id: 1, name: 'Віджимання' },
+    { id: 2, name: 'Присідання' },
+    { id: 3, name: 'Планка' }
+  ],
+  currentExerciseIndex: 0,
+  currentSet: 1,
+  targetUserId: 123456789
+}
+```
+
+---
+
+### 3.7 Історія тренувань
+
+**Призначення:** Перегляд минулих тренувань з фільтрацією та детальною інформацією
+
+**Доступ:**
+- **Учень:** `[📊 Історія]` → своя історія
+- **Тренер:** `[👥 Мої учні]` → Вибір учня → `[📊 Історія]` → історія обраного учня
+- **Тренер:** `[📊 Моя історія]` → власна історія тренера
+
+---
+
+#### 3.7.1 Три типи фільтрів історії
+
+**Фільтр 1: Всі тренування**
+```
+📊 **Історія тренувань**
+
+Всі тренування:
+
+[📅 Поточне тренування]
+[⏮ Попереднє тренування]
+[📋 Останні N тренувань]
+[🔙 Назад]
+```
+
+**Фільтр 2: За групою м'язів**
+```
+📊 **Історія за групами**
+
+Обери групу м'язів:
+
+[💪 Груди]
+[🔥 Спина]
+[🦵 Ноги]
+[🤸 Плечі]
+[💪 Руки]
+[🏋️ Прес]
+[🔙 Назад]
+
+→ Після вибору:
+
+[📅 Поточне тренування]
+[⏮ Попереднє тренування]
+[📋 Останні N тренувань]
+```
+
+**Фільтр 3: За вправою**
+```
+📊 **Історія за вправою**
+
+Обери групу для фільтрації вправ:
+[💪 Груди] → список вправ груди
+
+→ Після вибору вправи:
+
+[📅 Поточне тренування]
+[⏮ Попереднє тренування]
+[📋 Останні N тренувань]
+```
+
+---
+
+#### 3.7.2 Введення кількості останніх тренувань
+
+**Коли обирається "Останні N тренувань":**
+
+```
+📊 **Скільки тренувань показати?**
+
+Введи число (наприклад: 5, 10, 20):
+
+[🔙 Назад]
+```
+
+**Валідація вводу:**
+```javascript
+function validateHistoryCount(input) {
+  const num = parseInt(input);
+  
+  if (isNaN(num)) {
+    return { valid: false, message: "Введи число" };
+  }
+  
+  if (num < 1 || num > 100) {
+    return { valid: false, message: "Число має бути від 1 до 100" };
+  }
+  
+  return { valid: true, count: num };
+}
+```
+
+---
+
+#### 3.7.3 Формат виводу (детальний)
+
+**Приклад виводу однієї тренування:**
+
+```
+📅 **Тренування: 01.02.2026 14:35**
+
+**Груди:**
+
+1️⃣ **Жим штанги лежачи**
+   Підхід 1: 80кг × 8 повторів
+   Підхід 2: 80кг × 7 повторів
+   Підхід 3: 75кг × 8 повторів
+
+2️⃣ **Жим гантелей на похилій**
+   Підхід 1: 32кг × 10 повторів
+   Підхід 2: 32кг × 9 повторів
+
+3️⃣ **Розведення гантелей**
+   Підхід 1: 16кг × 12 повторів
+   Підхід 2: 16кг × 12 повторів
+   Підхід 3: 16кг × 11 повторів
+
+**Трицепс:**
+
+4️⃣ **Французький жим**
+   Підхід 1: 25кг × 12 повторів
+   Підхід 2: 25кг × 11 повторів
+
+📊 Всього вправ: 4
+⏱️ Загальна тривалість: 58 хвилин
+💪 Всього підходів: 10
+
+[◀️ Попереднє] [▶️ Наступне] [🔙 До меню]
+```
+
+---
+
+#### 3.7.4 Поточне тренування (незавершене)
+
+**Визначення:** Тренування, яке розпочато але не завершено
+
+**Логіка:**
+```javascript
+function getCurrentWorkout(chatId) {
+  // Перевіряємо чи є активний стан тренування
+  const state = State.getState(chatId);
+  
+  if (state && (state.step === 'selecting_exercise' || 
+                state.step === 'entering_data' ||
+                state.mode === 'CIRCUIT')) {
+    return {
+      isActive: true,
+      startTime: state.startTime,
+      exercises: state.completedExercises || []
+    };
+  }
+  
+  return { isActive: false };
+}
+```
+
+**UI для незавершеного тренування:**
+```
+⚠️ **Поточне тренування (не завершено)**
+
+Розпочато: 01.02.2026 14:00
+
+Вже виконано:
+1️⃣ Підйом на біцепс: 15кг × 8, 15кг × 8, 15кг × 7
+2️⃣ Молоток: 18кг × 10, 18кг × 9
+
+[▶️ Продовжити тренування]
+[❌ Завершити і зберегти]
+[🔙 Назад]
+```
+
+---
+
+#### 3.7.5 Навігація через список тренувань
+
+**Потік:**
+```
+1. Користувач обирає фільтр
+2. Система показує список тренувань (коротка інфо)
+3. Клік на тренування → детальний перегляд
+4. Можливість переходу до наступного/попереднього
+```
+
+**Список тренувань (коротка форма):**
+```
+📋 **Останні 10 тренувань**
+
+1. 📅 01.02.2026 - Груди+Трицепс (4 вправи, 10 підходів)
+2. 📅 30.01.2026 - Спина+Біцепс (5 вправ, 14 підходів)
+3. 📅 28.01.2026 - Ноги (6 вправ, 18 підходів)
+4. 📅 26.01.2026 - Плечі (4 вправи, 12 підходів)
+5. 📅 24.01.2026 - Груди+Трицепс (4 вправи, 11 підходів)
+...
+
+[Клік на будь-яке] → Детальний перегляд
+
+[🔙 Назад до фільтрів]
+```
+
+---
+
+#### 3.7.6 FSM States для історії
+
+```javascript
+// Стан для перегляду історії
+{
+  step: 'viewing_history',
+  historyFilter: 'all' | 'by_group' | 'by_exercise',
+  selectedGroup: null,        // Якщо фільтр by_group
+  selectedExercise: null,     // Якщо фільтр by_exercise
+  currentPage: 0,
+  limit: 10,
+  totalWorkouts: 45,
+  targetUserId: chatId        // Чия історія (для Coach Mode)
+}
+
+// Стан для введення кількості
+{
+  step: 'history_input_count',
+  previousStep: 'viewing_history',
+  historyFilter: 'all',
+  targetUserId: chatId
+}
+```
+
+---
+
+#### 3.7.7 Функції Sheets.gs для історії
+
+```javascript
+// Отримати всі тренування користувача
+getWorkoutHistory(chatId, limit, offset)
+
+// Отримати тренування за групою м'язів
+getWorkoutsByMuscleGroup(chatId, groupName, limit)
+
+// Отримати тренування з конкретною вправою
+getWorkoutsByExercise(chatId, exerciseId, limit)
+
+// Отримати деталі одного тренування
+getWorkoutDetails(chatId, date)
+
+// Перевірити чи є незавершене тренування
+getCurrentActiveWorkout(chatId)
+
+// Агрегація статистики
+getWorkoutStats(chatId, workoutDate) → {
+  exerciseCount, setCount, duration
+}
+```
+
+---
+
+#### 3.7.8 Callback_data формат для історії
+
+```javascript
+// Вибір фільтру
+HIST_FILTER:all           // Всі тренування
+HIST_FILTER:group         // За групою
+HIST_FILTER:exercise      // За вправою
+
+// Перегляд тренування
+HIST_VIEW:{timestamp}     // Детальний перегляд
+
+// Навігація
+HIST_PREV:{timestamp}     // Попереднє тренування
+HIST_NEXT:{timestamp}     // Наступне тренування
+
+// Введення кількості
+HIST_COUNT:enter          // Перехід до введення числа
+```
+
+---
+
+#### 3.7.9 Критичні правила історії
+
+✅ **Дані беруться з BotTrainingData**  
+✅ **ChatID = цільовий користувач** (не тренер в Coach Mode)  
+✅ **Детальний формат** - всі підходи з вагою та повторами  
+✅ **Поточне тренування** - визначається по активному State  
+✅ **Пагінація** - не більше 50 тренувань за один запит  
+✅ **Кешування** - історія кешується на 300 секунд  
+
+❌ **Заборонено** змішувати дані тренера і учня  
+❌ **Заборонено** показувати тренування без деталей  
+❌ **Заборонено** необмежені запити (максимум 100 тренувань)  
+
+=============================================================================================
+
+## 4. СИСТЕМА ЗАПИСУ НА ТРЕНУВАННЯ
+
+### 4.1 Таблиця WorkoutSchedule
+
+**Структура (A–J):**
+
+| Колонка | EN Header | Опис |
+|---------|-----------|------|
+| **A** | ID | Унікальний ID запису (UUID) |
+| **B** | CoachID | ChatID тренера |
+| **C** | StudentID | ChatID учня |
+| **D** | Date | Дата тренування (YYYY-MM-DD) |
+| **E** | Time | Час початку (HH:mm) |
+| **F** | Status | Статус: AVAILABLE/REQUESTED/BOOKED/COMPLETED/CANCELED |
+| **G** | UpdatedAt | Час останньої зміни статусу |
+| **H** | CalEventID | ID події в Google Calendar |
+| **I** | PriceCharged | Вартість з одного учня; заповнюється при Status = COMPLETED |
+| **J** | Currency | Валюта (наприклад UAH); заповнюється разом з I |
+
+---
+
+### 4.2 Статуси (Status)
+
+**AVAILABLE:**
+- Вікно створене тренером
+- Вільне для запису
+- Показується учням
+
+**REQUESTED:**
+- Запит на запис (від учня або тренера)
+- Очікує підтвердження іншої сторони
+- Тимчасово заблоковане
+
+**BOOKED:**
+- Підтверджене тренування
+- Синхронізоване з Calendar
+- Заброньоване
+
+**COMPLETED:**
+- Тренування відбулося
+- Архівний статус
+- Використовується для аналітики
+
+**CANCELED:**
+- Скасоване тренування
+- Архівний статус
+- Слот звільняється
+
+---
+
+### 4.3 Сценарій: Тренер записує учня
+
+**Крок 1:** Тренер → `[👥 Мої учні]` → Вибір учня → `[🗓 Записати]`
+
+**Крок 2:** Перевірка Calendar ID
+```javascript
+const coach = User.getByChatId(coachChatId);
+if (!coach.calendarId) {
+  return "⚠️ У вашем профілі не вказан Calendar ID";
+}
+```
+
+**Крок 3:** Завантаження вільних вікон
+```javascript
+const slots = Calendar.getAvailableSlots(coach.calendarId);
+// Повертає події з префіксом "FIT: Вільно"
+```
+
+**Крок 4:** Вибір вікна
+```
+UI:
+🗓 **Оберіть вільне вікно в Календарі:**
+
+[📅 01.02 о 10:00]
+[📅 01.02 о 14:00]
+[🔙 Скасувати]
+```
+
+**Крок 5:** Створення запису в WorkoutSchedule
+```javascript
+const record = {
+  id: Utilities.getUuid(),
+  coachId: coachChatId,
+  studentId: studentChatId,
+  date: '2026-02-01',
+  time: '14:00',
+  status: 'REQUESTED',
+  updatedAt: new Date(),
+  calEventId: 'evt_def456'
+};
+
+Sheets.insertWorkoutSchedule(record);
+```
+
+**Крок 6:** Відправка запиту учню
+```
+UI Учня:
+👋 Твій тренер **Андрій** хоче записати тебе на тренування:
+🗓 **01.02 о 14:00**
+
+[✅ Підтвердити]
+[❌ Відхилити]
+```
+
+**Крок 7:** Підтвердження учнем → Оновлення статусу на BOOKED
+
+---
+
+### 4.4 Сценарій: Учень записується сам
+
+**Крок 1:** Учень → `[📅 Записатись]`
+
+**Крок 2:** Перевірка наявності тренера
+```javascript
+const student = User.getByChatId(studentChatId);
+if (!student.coachId) {
+  return "🤷‍♂️ У вас ще немає закріпленого тренера";
+}
+```
+
+**Крок 3:** Завантаження вікон тренера
+```javascript
+const coach = User.getByChatId(student.coachId);
+const slots = Calendar.getAvailableSlots(coach.calendarId);
+```
+
+**Крок 4:** Вибір вікна та створення запису зі статусом REQUESTED
+
+**Крок 5:** Відправка запиту тренеру на підтвердження
+
+---
+
+### 4.5 Вартість тренувань (Pricing)
+
+**Де зберігається:** лист **Pricing** (A–G): CoachID, StudentID (порожній = тариф за замовчуванням тренера), PricePersonal, PriceSplit, PriceTrio, Currency, UpdatedAt. Один рядок на пару (CoachID, StudentID).
+
+**Правило спліт/тріо:** У Pricing зберігається повна ціна за заняття (на двох або на трьох). При записі в WorkoutSchedule при переході в COMPLETED у колонку **PriceCharged** (I) записується сума **з одного учня**: для персонального — вся ціна, для спліту — ціна/2, для тріо — ціна/3. Валюта — у колонку J.
+
+**Коли застосовується ціна:** У момент переходу слоту в **COMPLETED** (Training.finishWorkout_ або Schedule.confirmAttendance) система викликає `Sheets.getCurrentPrice(coachId, studentId, coachTrainingType)` з листа Pricing, ділить на 1/2/3 за типом тренування і викликає `Sheets.updateScheduleSlotPrice(slotId, perStudentAmount, currency)`.
+
+**Звіт за доходами:** Звіт «Сумма доходів» за період будується по вибірці з WorkoutSchedule (Status = COMPLETED, дата в межах періоду). Загальний дохід = сума колонки **PriceCharged** (I). Можлива розбивка по учнях (сума PriceCharged по StudentID).
+
+===========================================================================================
+
+## 5. РОБОТА З ЗАМІРАМИ
+
+### 5.1 Таблиця MeasurementsHistory
+
+**Структура (A-I):**
+
+| Колонка | EN Header | Опис |
+|---------|-----------|------|
+| **A** | ChatID | ChatID користувача |
+| **B** | Date | Дата заміру |
+| **C** | Height | Зріст (см) |
+| **D** | Weight | Вага (кг) |
+| **E** | Waist | Талія (см) |
+| **F** | Hip | Стегно (см) |
+| **G** | Glutes | Ягодиці (см) |
+| **H** | Arm | Рука (см) |
+| **I** | Source | Джерело: profile/training/manual |
+
+---
+
+### 5.2 Source (джерело даних)
+
+**profile:**
+- Заміри з розділу Профіль
+- Користувач вручну вводить дані
+
+**training:**
+- Автоматичні заміри після тренування
+- Можуть пропонуватися ботом
+
+**manual:**
+- Додані вручну через меню
+- Швидке додавання
+
+---
+
+### 5.3 Функції роботи з замірами
+
+**Додати заміри:**
+```javascript
+Sheets.addMeasurement({
+  chatId: 123456789,
+  date: new Date(),
+  height: 175,
+  weight: 80,
+  waist: 85,
+  hip: 95,
+  glutes: 100,
+  arm: 35,
+  source: 'profile'
+});
+```
+
+**Отримати історію:**
+```javascript
+const history = Sheets.getMeasurementsHistory(chatId, 10);
+// Повертає останні 10 записів
+```
+
+**Обчислення динаміки:**
+```javascript
+function calculateProgress(history) {
+  if (history.length < 2) return null;
+  
+  const latest = history[0];
+  const previous = history[1];
+  
+  return {
+    weightDiff: latest.weight - previous.weight,
+    waistDiff: latest.waist - previous.waist,
+    // ... інші показники
+  };
+}
+```
+
+================================================================================================
+
+## 6. БІБЛІОТЕКА ВПРАВ
+
+### 6.1 Таблиця ExerciseLibrary
+
+**Структура (A-L, 12 колонок):**
+
+| Колонка | EN Header | Опис |
+|---------|-----------|------|
+| **A** | ID | Унікальний ID вправи |
+| **B** | GroupName | Група м'язів (для кнопок) |
+| **C** | ExerciseName | Назва вправи |
+| **D** | Equipment | Обладнання |
+| **E** | Active | YES/NO - активність |
+| **F** | Comment | Коментар тренера |
+| **G** | FocusPoint | Ключовий фокус |
+| **H** | CommonMistakes | Звичайні помилки |
+| **I** | ProperFeeling | Що відчувати |
+| **J** | StaticHolds | Особливості статики |
+| **K** | YouTubeLink | Посилання на відео |
+| **L** | MyChannelLink | Власне відео |
+
+---
+
+### 6.2 Використання в Training.gs
+
+**Показ груп м'язів:**
+```javascript
+// Унікальні групи з ExerciseLibrary
+const groups = Sheets.getExerciseGroups();
+// Повертає: ["Груди", "Спина", "Ноги", ...]
+
+// UI:
+groups.forEach(group => {
+  buttons.push({
+    text: group,
+    callback_data: `TRAIN_GROUP:${group}`
+  });
+});
+```
+
+**Показ вправ групи:**
+```javascript
+const exercises = Sheets.getExercisesByGroup("Груди");
+// Фільтрація: GroupName = "Груди" AND Active = "YES"
+
+// UI:
+exercises.forEach(ex => {
+  buttons.push({
+    text: ex.exerciseName,
+    callback_data: `TRAIN_EXERCISE:${ex.id}`
+  });
+});
+```
+
+**Пошук вправи по назві (додаткова опція):**
+```javascript
+// UI: кнопка "🔎 Ввести назву"
+// FSM: step = 'training_search_name_input'
+// Валідація: мінімум 3 літери
+const query = input.toLowerCase();
+const prefix = query.slice(0, 3);
+
+const exercises = Sheets.getAllExercises();
+const startsWith = exercises.filter(ex => ex.exerciseName.toLowerCase().startsWith(prefix));
+const contains = exercises.filter(ex => ex.exerciseName.toLowerCase().includes(query));
+
+// Об'єднати з пріоритетом startsWith і прибрати дублікати
+const results = mergeUnique(startsWith, contains);
+```
+
+**Правила пошуку:**
+- пошук стартує з перших 3 літер
+- також шукаємо входження введеного слова в будь-якій частині назви
+
+**Coach доступ до деталей:**
+```javascript
+const exercise = Sheets.getExerciseById(5);
+
+const details = `
+📋 **${exercise.exerciseName}**
+
+🎯 Фокус: ${exercise.focusPoint}
+⚠️ Помилки: ${exercise.commonMistakes}
+✅ Відчуття: ${exercise.properFeeling}
+
+${exercise.youtubeLink ? '🎥 Відео: ' + exercise.youtubeLink : ''}
+`;
+```
+
+---
+
+### 6.3 Фільтрація по Active
+
+**Критично:** Показувати ТІЛЬКИ вправи де `Active = "YES"`
+
+```javascript
+function getActiveExercises() {
+  const sheet = SpreadsheetApp.openById(CONSTANTS.SPREADSHEET_ID)
+    .getSheetByName('ExerciseLibrary');
+  
+  const data = sheet.getRange('A3:L').getValues();
+  
+  return data
+    .filter(row => row[4] === 'YES') // Колонка E
+    .map(row => ({
+      id: row[0],
+      groupName: row[1],
+      exerciseName: row[2],
+      // ... всі поля
+    }));
+}
+```
+
+====================================================================================================
+
+## 7. ІНТЕГРАЦІЯ З GOOGLE CALENDAR
+
+### 7.1 Префікс подій "FIT:"
+
+**Всі події створені ботом мають префікс:**
+```
+FIT: Вільно           - доступне вікно
+FIT: Олексій Петренко - заброньоване
+```
+
+**Це дозволяє:**
+- Відфільтрувати події бота від особистих
+- Швидко визначити статус вікна
+- Синхронізувати статуси
+
+---
+
+### 7.2 Функції Calendar.gs
+
+**Отримати вільні слоти:**
+```javascript
+function getAvailableSlots(calendarId) {
+  const cal = CalendarApp.getCalendarById(calendarId);
+  const now = new Date();
+  const end = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // +14 днів
+  
+  const events = cal.getEvents(now, end);
+  
+  return events
+    .filter(evt => evt.getTitle().startsWith('FIT: Вільно'))
+    .map(evt => ({
+      id: evt.getId(),
+      title: evt.getTitle(),
+      startTime: evt.getStartTime(),
+      endTime: evt.getEndTime()
+    }));
+}
+```
+
+**Забронювати вікно:**
+```javascript
+function bookEvent(calendarId, eventId, studentData) {
+  const cal = CalendarApp.getCalendarById(calendarId);
+  const event = cal.getEventById(eventId);
+  
+  if (!event) return false;
+  
+  // Зміна назви
+  event.setTitle(`✅ FIT: ${studentData.firstName} ${studentData.lastName}`);
+  
+  // Опис
+  const description = `💪 Тренування заброньовано через FIT Bot
+Учень: ${studentData.firstName}
+Контакт: @${studentData.username || 'не вказано'}`;
+  
+  event.setDescription(description);
+  
+  // Додати учня як гостя (якщо є email)
+  if (studentData.email) {
+    event.addGuest(studentData.email);
+  }
+  
+  return true;
+}
+```
+
+---
+
+### 7.3 Синхронізація WorkoutSchedule ↔ Calendar
+
+**При зміні статусу в WorkoutSchedule → оновлення Calendar:**
+
+```javascript
+function syncScheduleToCalendar(scheduleRecord) {
+  const { calEventId, status, studentId } = scheduleRecord;
+  
+  if (!calEventId) return;
+  
+  const coach = User.getByChatId(scheduleRecord.coachId);
+  const cal = CalendarApp.getCalendarById(coach.calendarId);
+  const event = cal.getEventById(calEventId);
+  
+  if (!event) return;
+  
+  switch(status) {
+    case 'BOOKED':
+      const student = User.getByChatId(studentId);
+      event.setTitle(`✅ FIT: ${student.firstName}`);
+      break;
+      
+    case 'CANCELED':
+      event.setTitle('FIT: Вільно');
+      break;
+      
+    case 'COMPLETED':
+      event.setTitle(`✔️ FIT: Завершено`);
+      break;
+  }
+}
+```
+
+===================================================================================================
+
+## 8. FSM STATES ТА ПЕРЕХОДИ
+
+### 8.1 Групи станів
+
+**REGISTRATION (реєстрація):**
+```
+reg_role          - вибір ролі
+reg_first_name    - введення імені
+reg_last_name     - введення прізвища
+reg_gender        - вибір статі
+reg_goal          - вибір цілі
+reg_birth_date    - введення дати народження
+reg_city          - введення міста
+reg_instagram     - Instagram (тільки coach)
+reg_calendar_id   - Calendar ID (тільки coach)
+reg_invite_input  - введення інвайт-коду
+```
+
+**PROFILE (профіль):**
+```
+profile_editing_name      - редагування імені
+profile_editing_city      - редагування міста
+profile_adding_measurement - додавання замірів
+```
+
+**TRAINING (тренування):**
+```
+selecting_exercise  - вибір вправи
+entering_weight     - введення ваги
+entering_reps       - введення повторів
+circuit_training    - круговий сет
+```
+
+**SCHEDULE (запис):**
+```
+schedule_selecting_date - вибір дати
+schedule_selecting_time - вибір часу
+```
+
+---
+
+### 8.2 Структура State
+
+**Формат:**
+```javascript
+{
+  step: "selecting_exercise",
+  data: {
+    mode: "STUDENT",          // або "COACH"
+    targetUserId: 123456789,  // для кого тренування
+    currentExerciseId: 5,
+    exercises: [...]          // для кругового сету
+  },
+  timestamp: 1706799600000
+}
+```
+
+**Зберігання:** ScriptProperties з ключем `state_{chatId}`
+
+---
+
+### 8.3 Переходи станів (приклад тренування)
+
+```
+null
+  ↓ TRAIN_START
+selecting_exercise
+  ↓ TRAIN_EXERCISE:5
+entering_weight
+  ↓ введення "20"
+entering_reps
+  ↓ введення "12"
+  ↓ збереження в BotTrainingData
+selecting_exercise (повернення)
+  ↓ TRAIN_FINISH
+null (очищення State)
+```
+
+====================================================================================
+
+## 9. CALLBACK_DATA ФОРМАТ
+
+### 9.1 Загальний формат
+
+**Шаблон:** `ACTION:PARAM1:PARAM2:...`
+
+**Приклади:**
+```
+VIEW_STUDENT:123456789
+TRAIN_EXERCISE:5
+TRAIN_GROUP:Груди
+SCH_CONF:7
+CAL_BOOK:evt_abc123
+MENU_BACK
+```
+
+---
+
+### 9.2 Парсинг в Router
+
+```javascript
+function routeCallback(chatId, callbackData, callbackQueryId) {
+  const parts = callbackData.split(':');
+  const action = parts[0];
+  const params = parts.slice(1);
+  
+  // Маршрутизація
+  if (action.startsWith('TRAIN_')) {
+    Training.handleCallback(chatId, action, params, callbackQueryId);
+  } else if (action.startsWith('VIEW_')) {
+    Menu.handleCallback(chatId, action, params, callbackQueryId);
+  }
+  // ...
+}
+```
+
+==================================================================================================
+
+## 10. РОБОТА З МІСТАМИ
+
+### 10.1 Таблиця CityList
+
+**Структура (A-B, 2 колонки):**
+
+| Колонка | EN Header | Опис |
+|---------|-----------|------|
+| **A** | CityID | Унікальний ID міста (число або рядок) |
+| **B** | CityName | Назва міста українською |
+
+**Технічні правила:**
+- Дані починаються з рядка 3
+- Рядок 1: англійські заголовки
+- Рядок 2: українські заголовки
+- Всі назви міст українською мовою
+
+---
+
+### 10.2 Використання в модулі Registration
+
+**При реєстрації користувача:**
+
+```javascript
+// Крок: введення міста
+State.set(chatId, {
+  step: 'reg_city',
+  data: { ...existingData }
+});
+
+// UI:
+const message = "З якого ти міста?";
+Helpers.safeSend(chatId, message);
+```
+
+**Обробка вводу:**
+
+```javascript
+function handleCityInput(chatId, cityName) {
+  // Пошук міста в CityList
+  const city = Sheets.findCityByName(cityName);
+  
+  if (!city) {
+    // Якщо міста немає в списку - пропонуємо найближчі
+    const suggestions = Sheets.searchCities(cityName);
+    
+    if (suggestions.length > 0) {
+      const buttons = suggestions.map(c => ({
+        text: c.cityName,
+        callback_data: `REG_SELECT_CITY:${c.cityId}`
+      }));
+      
+      Helpers.safeSend(chatId, "Можливо ви мали на увазі:", { 
+        inline_keyboard: buttons 
+      });
+    } else {
+      // Додати місто вручну (тимчасово зберегти як є)
+      State.updateStateData(chatId, { city: cityName });
+      // Продовжити реєстрацію
+    }
+  } else {
+    // Місто знайдено
+    State.updateStateData(chatId, { 
+      city: city.cityName,
+      cityId: city.cityId 
+    });
+    // Продовжити реєстрацію
+  }
+}
+```
+
+---
+
+### 10.3 Функції Sheets.gs для роботи з містами
+
+#### Функція: `getAllCities()`
+
+**Призначення:** Отримати список всіх міст
+
+**Сигнатура:**
+```javascript
+function getAllCities()
+```
+
+**Алгоритм:**
+1. Отримати лист CityList
+2. Прочитати діапазон A3:B
+3. Відфільтрувати порожні рядки
+4. Повернути масив об'єктів
+
+**Повертає:**
+```javascript
+[
+  { cityId: 1, cityName: "Київ" },
+  { cityId: 2, cityName: "Одеса" },
+  { cityId: 3, cityName: "Львів" },
+  // ...
+]
+```
+
+---
+
+#### Функція: `findCityByName(cityName)`
+
+**Призначення:** Точний пошук міста по назві
+
+**Сигнатура:**
+```javascript
+function findCityByName(cityName)
+```
+
+**Вхідні дані:**
+- `cityName` (string): Назва міста
+
+**Алгоритм:**
+1. Нормалізація вводу: trim(), toLowerCase()
+2. Пошук в колонці B (CityName)
+3. Порівняння без урахування регістру
+
+**Повертає:**
+```javascript
+// Якщо знайдено:
+{ cityId: 2, cityName: "Одеса" }
+
+// Якщо не знайдено:
+null
+```
+
+---
+
+#### Функція: `searchCities(prefix)`
+
+**Призначення:** Пошук міст по префіксу (автопідказки)
+
+**Сигнатура:**
+```javascript
+function searchCities(prefix, limit = 5)
+```
+
+**Вхідні дані:**
+- `prefix` (string): Початок назви міста
+- `limit` (number): Максимум результатів
+
+**Алгоритм:**
+1. Нормалізація префіксу
+2. Фільтрація міст що починаються з prefix
+3. Обмеження кількості результатів
+
+**Повертає:**
+```javascript
+// Для prefix = "Оде":
+[
+  { cityId: 2, cityName: "Одеса" }
+]
+
+// Для prefix = "Ки":
+[
+  { cityId: 1, cityName: "Київ" },
+  { cityId: 15, cityName: "Кіровоград" }
+]
+```
+
+---
+
+### 10.4 Використання в Profile
+
+**При редагуванні міста:**
+
+```javascript
+// Profile → Редагувати → Місто
+State.set(chatId, {
+  step: 'profile_editing_city'
+});
+
+// Показ поточного міста та запит нового
+const user = User.getByChatId(chatId);
+const message = `Поточне місто: ${user.city || 'не вказано'}
+
+Введіть нове місто:`;
+
+Helpers.safeSend(chatId, message);
+```
+
+---
+
+### 10.5 Використання для пошуку тренерів
+
+**Фільтрація тренерів по місту:**
+
+```javascript
+function findTrainersByCity(cityName) {
+  // Отримати всіх тренерів
+  const trainers = Sheets.getUsersByRole('coach');
+  
+  // Фільтрувати по місту
+  return trainers.filter(t => 
+    t.city && t.city.toLowerCase() === cityName.toLowerCase()
+  );
+}
+```
+
+**UI учня:**
+```
+🔍 **Знайти тренера**
+
+Оберіть своє місто:
+[📍 Київ]
+[📍 Одеса]
+[📍 Львів]
+[📍 Харків]
+[🔙 Назад]
+```
+
+=========================================================================================
+
+## 11. ПРОГРАМИ ТРЕНУВАНЬ
+
+### 11.1 Таблиця TrainingPlans
+
+**Призначення:** Зберігання програм тренувань створених тренерами
+
+**Структура (A-G, 7 колонок):**
+
+| Колонка | EN Header | Опис |
+|---------|-----------|------|
+| **A** | PlanID | Унікальний ID плану |
+| **B** | CoachID | ChatID тренера-автора |
+| **C** | PlanName | Назва програми |
+| **D** | Goal | Ціль: lose/gain/keep |
+| **E** | Level | Рівень: beginner/intermediate/advanced |
+| **F** | Description | Опис програми |
+| **G** | IsActive | YES/NO - активність |
+
+**Технічні правила:**
+- Дані починаються з рядка 3
+- Рядок 1: EN заголовки
+- Рядок 2: UA/RU заголовки
+- PlanID генерується автоматично (UUID або auto-increment)
+
+---
+
+### 11.2 Таблиця TrainingPlanExercises
+
+**Призначення:** Деталізація вправ у кожній програмі
+
+**Структура (A-G, 7 колонок):**
+
+| Колонка | EN Header | Опис |
+|---------|-----------|------|
+| **A** | PlanID | ID плану (зв'язок з TrainingPlans) |
+| **B** | Day | День тижня або номер тренування |
+| **C** | ExerciseName | Назва вправи |
+| **D** | Sets | Кількість підходів |
+| **E** | Reps | Кількість повторів (може бути діапазон: "8-10") |
+| **F** | RestSec | Відпочинок між підходами (секунди) |
+| **G** | Notes | Примітки (техніка, фокус) |
+
+**Технічні правила:**
+- Дані починаються з рядка 3
+- Одна програма може мати багато вправ
+- Day може бути числом (1, 2, 3) або текстом ("Понеділок")
+- Зв'язок: PlanID (TrainingPlanExercises) → PlanID (TrainingPlans)
+
+---
+
+### 11.3 Логіка програм тренувань
+
+**Сценарій використання:**
+
+#### 1. Тренер створює програму
+
+```javascript
+// Menu → Програми → Створити нову
+
+State.set(coachChatId, {
+  step: 'creating_plan'
+});
+
+// UI:
+const message = `➕ **Нова програма тренувань**
+
+Введіть назву програми:`;
+```
+
+#### 2. Заповнення параметрів
+
+```javascript
+// Введення назви
+State.updateStateData(coachChatId, { planName: "Сила та маса" });
+
+// Вибір цілі
+UI: [Схуднення] [Набір маси] [Підтримка]
+→ goal: "gain"
+
+// Вибір рівня
+UI: [Початківець] [Середній] [Просунутий]
+→ level: "intermediate"
+
+// Опис
+→ description: "Програма на 3 місяці для набору м'язової маси"
+```
+
+#### 3. Додавання вправ по днях
+
+```javascript
+// День 1: Груди + Трицепс
+State.set(coachChatId, {
+  step: 'adding_exercises',
+  data: {
+    planId: newPlanId,
+    currentDay: 1,
+    exercises: []
+  }
+});
+
+// Вибір вправи з ExerciseLibrary
+→ ExerciseName: "Жим штанги лежачи"
+→ Sets: 4
+→ Reps: 8-10
+→ RestSec: 90
+→ Notes: "Акцент на негативній фазі"
+```
+
+#### 4. Збереження програми
+
+```javascript
+// Створення запису в TrainingPlans
+Sheets.createTrainingPlan({
+  planId: Utilities.getUuid(),
+  coachId: coachChatId,
+  planName: "Сила та маса",
+  goal: "gain",
+  level: "intermediate",
+  description: "Програма на 3 місяці...",
+  isActive: "YES"
+});
+
+// Додавання вправ в TrainingPlanExercises
+exercises.forEach(ex => {
+  Sheets.addPlanExercise({
+    planId: planId,
+    day: ex.day,
+    exerciseName: ex.name,
+    sets: ex.sets,
+    reps: ex.reps,
+    restSec: ex.rest,
+    notes: ex.notes
+  });
+});
+```
+
+---
+
+### 11.4 Призначення програми учню
+
+**Функціонал тренера:**
+
+```javascript
+// Тренер → Мої учні → Олексій → Призначити програму
+
+const availablePrograms = Sheets.getProgramsByCoach(coachChatId);
+
+// UI:
+availablePrograms.forEach(program => {
+  buttons.push({
+    text: `${program.planName} (${program.level})`,
+    callback_data: `ASSIGN_PLAN:${studentChatId}:${program.planId}`
+  });
+});
+```
+
+**Збереження призначення:**
+
+```javascript
+// Додати поле activePlanId в Users (або окрему таблицю UserPlans)
+User.updateUserProfile(studentChatId, {
+  activePlanId: planId
+});
+```
+
+---
+
+### 11.5 Використання програми учнем
+
+**UI учня з активною програмою:**
+
+```
+📋 **Твоя програма: Сила та маса**
+Рівень: Середній
+Ціль: Набір маси
+
+**День 1: Груди + Трицепс**
+1. Жим штанги лежачи - 4x8-10 (90 сек)
+2. Жим гантелей на похилій - 3x10-12 (60 сек)
+3. Розведення гантелей - 3x12-15 (45 сек)
+
+[▶️ Почати тренування]
+[📊 Мій прогрес]
+```
+
+**Інтеграція з Training.gs:**
+
+```javascript
+// При натисканні "Почати тренування"
+const plan = Sheets.getUserActivePlan(chatId);
+const todayExercises = Sheets.getPlanExercises(plan.planId, currentDay);
+
+// Автоматичне заповнення списку вправ
+State.set(chatId, {
+  step: 'selecting_exercise',
+  mode: 'PROGRAM', // новий режим
+  planExercises: todayExercises,
+  currentExerciseIndex: 0
+});
+```
+
+---
+
+### 11.6 Функції Sheets.gs для програм
+
+```javascript
+// Створити програму
+createTrainingPlan(planData)
+
+// Додати вправу в програму
+addPlanExercise(exerciseData)
+
+// Отримати всі програми тренера
+getProgramsByCoach(coachId)
+
+// Отримати програму по ID
+getProgramById(planId)
+
+// Отримати вправи програми на конкретний день
+getPlanExercises(planId, day)
+
+// Отримати активну програму учня
+getUserActivePlan(chatId)
+
+// Деактивувати програму
+deactivatePlan(planId)
+```
+
+=====================================================================================================
+
+## 12. СИСТЕМА ЛОГУВАННЯ
+
+### 12.1 Таблиця Logs
+
+**Структура (A-D, 4 колонки):**
+
+| Колонка | EN Header | Опис |
+|---------|-----------|------|
+| **A** | Timestamp | Точна дата та час події |
+| **B** | Context | Місце збою (модуль.функція) |
+| **C** | Message | Текст помилки |
+| **D** | Stack | Технічний стек помилки |
+
+**Технічні правила:**
+- Дані починаються з рядка 3
+- Рядок 1: EN заголовки
+- Рядок 2: UA/RU заголовки
+- Додавання нових рядків в кінець (append)
+
+---
+
+### 12.2 Призначення
+
+**Використовується для:**
+- Запису критичних збоїв (Crash Reports)
+- Перевірки працездатності системи (System Check)
+- Відладки помилок коли недоступна консоль розробника
+- Моніторингу стану бота
+
+**Не використовується для:**
+- Звичайного логування дій користувачів
+- Debug інформації в процесі розробки
+- Статистики використання
+
+---
+
+### 12.3 Функція Sheets.logError()
+
+**Реалізація в Sheets.gs:**
+
+```javascript
+function logError(error, context) {
+  try {
+    const sheet = SpreadsheetApp.openById(CONSTANTS.SPREADSHEET_ID)
+      .getSheetByName('Logs');
+    
+    if (!sheet) {
+      Logger.log('CRITICAL: Logs sheet not found!');
+      return;
+    }
+    
+    const timestamp = new Date();
+    const message = error.message || String(error);
+    const stack = error.stack || 'No stack trace';
+    
+    sheet.appendRow([
+      timestamp,
+      context,
+      message,
+      stack
+    ]);
+    
+    SpreadsheetApp.flush();
+    
+  } catch (logError) {
+    // Якщо навіть логування падає - записати в Logger
+    Logger.log('CRITICAL: Failed to log error to Sheets');
+    Logger.log(`Original error: ${error}`);
+    Logger.log(`Log error: ${logError}`);
+  }
+}
+```
+
+---
+
+### 12.4 Використання в модулях
+
+**В Main.gs (doPost):**
+
+```javascript
+function doPost(e) {
+  try {
+    // Основна логіка
+    const update = JSON.parse(e.postData.contents);
+    Router.routeUpdate(update);
+    
+    return ContentService.createTextOutput('OK');
+    
+  } catch (error) {
+    // Логування критичної помилки
+    Sheets.logError(error, 'Main.doPost');
+    
+    // Спроба повідомити користувача
+    try {
+      const chatId = extractChatId(e);
+      if (chatId) {
+        Helpers.safeSend(chatId, 
+          '⚠️ Виникла технічна помилка. Спробуйте пізніше.');
+      }
+    } catch (notifyError) {
+      // Ігноруємо помилки повідомлення
+    }
+    
+    return ContentService.createTextOutput('ERROR');
+  }
+}
+```
+
+---
+
+**В Router.gs:**
+
+```javascript
+function routeUpdate(update) {
+  try {
+    const chatId = extractChatId(update);
+    
+    // Маршрутизація
+    if (update.message) {
+      handleMessage(chatId, update.message.text);
+    } else if (update.callback_query) {
+      handleCallback(chatId, update.callback_query);
+    }
+    
+  } catch (error) {
+    Sheets.logError(error, 'Router.routeUpdate');
+    throw error; // Прокинути вище для обробки в Main
+  }
+}
+```
+
+---
+
+**В критичних операціях (Registration, Training):**
+
+```javascript
+function handleRegistrationConfirm(chatId) {
+  try {
+    const state = State.getState(chatId);
+    
+    // Створення користувача
+    User.createUser(state.data);
+    
+    State.clearState(chatId);
+    Menu.showMainMenu(chatId);
+    
+  } catch (error) {
+    // Логування з контекстом
+    Sheets.logError(error, `Registration.handleConfirm:${chatId}`);
+    
+    // Спроба відновлення
+    State.clearState(chatId);
+    Helpers.safeSend(chatId, 
+      '⚠️ Помилка при реєстрації. Спробуйте ще раз: /start');
+  }
+}
+```
+
+---
+
+### 12.5 Моніторинг логів
+
+**Функція для перегляду останніх помилок:**
+
+```javascript
+function getRecentErrors(limit = 10) {
+  const sheet = SpreadsheetApp.openById(CONSTANTS.SPREADSHEET_ID)
+    .getSheetByName('Logs');
+  
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 3) return []; // Немає даних
+  
+  const startRow = Math.max(3, lastRow - limit + 1);
+  const range = sheet.getRange(startRow, 1, lastRow - startRow + 1, 4);
+  const data = range.getValues();
+  
+  return data.map(row => ({
+    timestamp: row[0],
+    context: row[1],
+    message: row[2],
+    stack: row[3]
+  }));
+}
+```
+
+---
+
+### 12.6 Автоматичні повідомлення про критичні помилки
+
+**Відправка в Telegram адміністратору:**
+
+```javascript
+function notifyAdminOnCriticalError(error, context) {
+  const adminChatId = CONSTANTS.ADMIN_CHAT_ID;
+  
+  if (!adminChatId) return;
+  
+  const message = `🚨 **CRITICAL ERROR**
+
+**Context:** ${context}
+**Time:** ${new Date().toLocaleString('uk-UA')}
+
+**Error:** ${error.message}
+
+**Stack:** \`\`\`
+${error.stack ? error.stack.substring(0, 500) : 'No stack'}
+\`\`\``;
+  
+  try {
+    Helpers.safeSend(adminChatId, message);
+  } catch (notifyError) {
+    Logger.log('Failed to notify admin: ' + notifyError);
+  }
+}
+```
+
+**Інтеграція в logError:**
+
+```javascript
+function logError(error, context) {
+  // Запис в таблицю
+  // ... код вище ...
+  
+  // Перевірка критичності
+  const criticalKeywords = ['ReferenceError', 'SyntaxError', 'doPost'];
+  const isCritical = criticalKeywords.some(keyword => 
+    error.message.includes(keyword) || context.includes(keyword)
+  );
+  
+  if (isCritical) {
+    notifyAdminOnCriticalError(error, context);
+  }
+}
+```
+
+===============================================================================
+
+13. СИСТЕМА ЗВИТІВ ТРЕНЕРА
+13.1 Назначение и типы звонков
+Мета: Дайте тренеру аналитику по проведенным тренировкам для:
+
+Модерируемые преимущества
+Планирование графики
+Увеличение доходов (в майбутном)
+Анализ активных занятий
+
+Типи звітів:
+
+Кількість тренувань (реализовано)
+
+За период (количество дней)
+Запасное количество
+Розподил по урокам
+Среднее количество тренировок в день
+
+
+Сумма доходов (заглушка)
+
+Буде реализовано в следующей версии
+При проверке: сообщение "Функция в разработке"
+
+
+
+
+13.2 Джерело даних для звонков
+Таблица: WorkoutSchedule (График тренировок)
+Критичні поля:
+A: ID (UUID)
+B: CoachID (ChatID тренера)
+C: StudentID (ChatID учня)
+D: Date (YYYY-MM-DD)
+E: Time (HH:mm)
+F: Status (AVAILABLE, REQUESTED, BOOKED, COMPLETED, CANCELED)
+G: UpdatedAt (timestamp)
+H: CalEventID (ID події в Google Calendar)
+Логика подсчета:
+
+✅ Враховується ТІЛЬКИ запис з Status = COMPLETED
+✅ Фільтр по CoachID = ChatID тренера
+✅ Фільтр по даті >= (поточна_дата - Н днів)
+
+**Як слот отримує Status COMPLETED (два джерела):**
+1) **Розклад:** тренер у «Мій розклад» натискає [Підтвердити присутність] по слоту, створеному через запис/календар.
+2) **Режим тренування:** тренер веде учня без попереднього запису (картка учня або «Тренування учнів»). При першому записі підходу створюється слот у WorkoutSchedule (BOOKED), при [Завершити тренування] йому виставляється COMPLETED. Детально — розділ 3.1.2.
+
+Якщо за період немає завершених тренувань:
+повідомлення тренеру: "ℹ️ У вас ще немає проведених тренувань."
+
+
+13.3 Алгоритм формирования звонка
+Модуль: Reports.gs (новий) 
+Функции: generateTrainingReport(coachChatId, days)
+Крок 1: Проверка ввода
+javascriptfunction validateReportDays(input) {
+  const days = parseInt(input);
+  
+  // Перевірка чи число
+  if (isNaN(days)) {
+    return { valid: false, error: "Введи число від 1 до 365" };
+  }
+  
+  // Перевірка діапазону
+  if (days < 1 || days > 365) {
+    return { valid: false, error: "Період має бути від 1 до 365 днів" };
+  }
+  
+  return { valid: true, value: days };
+}
+
+Крок 2: Выбор даних из WorkoutSchedule
+javascriptfunction getCompletedTrainings(coachChatId, days) {
+  const sheet = SpreadsheetApp.openById(CONSTANTS.SPREADSHEET_ID)
+    .getSheetByName('WorkoutSchedule');
+  
+  const data = sheet.getRange('A3:H').getValues();
+  
+  // Фільтрація
+  const today = new Date();
+  const startDate = new Date(today.getTime() - (days * 24 * 60 * 60 * 1000));
+  
+  const completedTrainings = data.filter(row => {
+    const coachId = row[1]; // Колонка B
+    const studentId = row[2]; // Колонка C
+    const date = new Date(row[3]); // Колонка D
+    const status = row[5]; // Колонка F
+    
+    return (
+      coachId == coachChatId &&
+      status === 'COMPLETED' &&
+      date >= startDate &&
+      studentId !== null && studentId !== ''
+    );
+  });
+  
+  return completedTrainings;
+}
+
+Крок 3: Группа по учням
+javascriptfunction groupTrainingsByStudent(trainings) {
+  const grouped = {};
+  
+  trainings.forEach(training => {
+    const studentId = training[2]; // Колонка C - StudentID
+    
+    if (!grouped[studentId]) {
+      grouped[studentId] = {
+        count: 0,
+        trainings: []
+      };
+    }
+    
+    grouped[studentId].count++;
+    grouped[studentId].trainings.push({
+      date: training[3], // Date
+      time: training[4]  // Time
+    });
+  });
+  
+  return grouped;
+}
+
+Крок 4: Отримання имен учнів
+javascriptfunction enrichWithStudentNames(grouped) {
+  const result = [];
+  
+  for (const studentId in grouped) {
+    const student = Sheets.getUserByChatId(studentId);
+    
+    result.push({
+      studentId: studentId,
+      studentName: student ? `${student.firstName} ${student.lastName}` : 'Невідомий',
+      count: grouped[studentId].count,
+      trainings: grouped[studentId].trainings
+    });
+  }
+  
+  // Сортування по кількості тренувань (спадання)
+  result.sort((a, b) => b.count - a.count);
+  
+  return result;
+}
+
+Крок 5: Формирование согласования
+javascriptfunction formatTrainingReport(days, totalCount, byStudents, startDate, endDate) {
+  let message = `📊 **Звіт по тренуванням**\n\n`;
+  message += `📅 Період: останні **${days} днів**\n`;
+  message += `(з ${formatDate(startDate)} до ${formatDate(endDate)})\n\n`;
+  message += `✅ **Проведено тренувань: ${totalCount}**\n\n`;
+  
+  if (byStudents.length > 0) {
+    message += `**По учням:**\n`;
+    byStudents.forEach(student => {
+      message += `• ${student.studentName}: ${student.count} тренувань\n`;
+    });
+    
+    const avgPerDay = (totalCount / days).toFixed(1);
+    message += `\n📈 **Середньо:** ${avgPerDay} тренувань/день`;
+  } else {
+    message += `⚠️ За цей період не знайдено завершених тренувань.`;
+  }
+  
+  return message;
+}
+
+function formatDate(date) {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}.${month}.${year}`;
+}
+
+Крок 6: Изменение звука
+javascriptfunction sendTrainingReport(coachChatId, days) {
+  try {
+    // Валідація
+    const validation = validateReportDays(days);
+    if (!validation.valid) {
+      Helpers.safeSend(coachChatId, validation.error);
+      return;
+    }
+    
+    // Виборка даних
+    const trainings = getCompletedTrainings(coachChatId, validation.value);
+    
+    // Підрахунок
+    const totalCount = trainings.length;
+    const grouped = groupTrainingsByStudent(trainings);
+    const byStudents = enrichWithStudentNames(grouped);
+    
+    // Дати
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - (validation.value * 24 * 60 * 60 * 1000));
+    
+    // Формування повідомлення
+    const message = formatTrainingReport(validation.value, totalCount, byStudents, startDate, endDate);
+    
+    // Клавіатура
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: '🔙 Назад до звітів', callback_data: 'REPORTS_MENU' }]
+      ]
+    };
+    
+    Helpers.safeSend(coachChatId, message, keyboard);
+    
+  } catch (error) {
+    Sheets.logError(error, `Reports.sendTrainingReport:${coachChatId}`);
+    Helpers.safeSend(coachChatId, '⚠️ Помилка при формуванні звіту. Спробуйте пізніше.');
+  }
+}
+
+13.4 Состояния FSM для звонков
+Нові стани:
+javascript// В CONSTANTS.gs
+const STEPS = {
+  // ... існуючі стани ...
+  
+  // Звіти
+  REPORTS_MENU: 'reports_menu',
+  REPORTS_TRAININGS_INPUT_DAYS: 'reports_trainings_input_days',
+  REPORTS_INCOME_STUB: 'reports_income_stub'
+};
+
+13.5 Действия обратного вызова для звонков
+В CONSTANTS.gs:
+javascriptconst CALLBACK = {
+  // ... існуючі callbacks ...
+  
+  // Звіти
+  REPORTS_MENU: 'REPORTS_MENU',
+  REPORTS_TRAININGS: 'REPORTS_TRAININGS',
+  REPORTS_INCOME: 'REPORTS_INCOME'
+};
+
+13.6 Интеграция в Menu.gs
+Дополнения в головном меню тренера:
+javascript// В функції showCoachMainMenu()
+
+const keyboard = {
+  inline_keyboard: [
+    [{ text: '➕ Додати учня', callback_data: CALLBACK.ADD_STUDENT }],
+    [{ text: '👥 Мої учні', callback_data: CALLBACK.MY_STUDENTS }],
+    [{ text: '💪 Власне тренування', callback_data: CALLBACK.OWN_TRAINING }],
+    [{ text: '📅 Мій розклад', callback_data: CALLBACK.MY_SCHEDULE }],
+    [{ text: '📊 Звіти', callback_data: CALLBACK.REPORTS_MENU }], // ← НОВА КНОПКА
+    [{ text: '📊 Моя історія', callback_data: CALLBACK.MY_HISTORY }],
+    [{ text: '👤 Профіль', callback_data: CALLBACK.PROFILE }]
+  ]
+};
+
+Створите функции меню звонков:
+javascriptfunction showReportsMenu(coachChatId) {
+  const message = `📊 **Звіти**\n\nОберіть тип звіту:`;
+  
+  const keyboard = {
+    inline_keyboard: [
+      [{ text: '📈 Кількість тренувань', callback_data: CALLBACK.REPORTS_TRAININGS }],
+      [{ text: '💰 Сума доходів', callback_data: CALLBACK.REPORTS_INCOME }],
+      [{ text: '🔙 Назад', callback_data: CALLBACK.MAIN_MENU }]
+    ]
+  };
+  
+  Helpers.safeSend(coachChatId, message, keyboard);
+}
+
+13.7 Интеграция в Router.gs
+Добавить возможность обратного вызова звонков:
+javascriptfunction handleCallback(chatId, callbackQuery) {
+  const callbackData = callbackQuery.data;
+  const [action, ...params] = callbackData.split(':');
+  
+  // ... існуючі обробки ...
+  
+  // Звіти
+  if (action === CALLBACK.REPORTS_MENU) {
+    Menu.showReportsMenu(chatId);
+    return;
+  }
+  
+  if (action === CALLBACK.REPORTS_TRAININGS) {
+    handleReportsTrainingsStart(chatId);
+    return;
+  }
+  
+  if (action === CALLBACK.REPORTS_INCOME) {
+    handleReportsIncomeStub(chatId);
+    return;
+  }
+  
+  // ... інші обробки ...
+}
+
+Объявления для звонков:
+javascriptfunction handleReportsTrainingsStart(chatId) {
+  State.setState(chatId, {
+    step: STEPS.REPORTS_TRAININGS_INPUT_DAYS
+  });
+  
+  const message = `📈 **Звіт: Кількість тренувань**\n\n` +
+    `За скільки днів показати статистику?\n\n` +
+    `Введи число від 1 до 365 (наприклад: 7, 14, 30, 90)`;
+  
+  const keyboard = {
+    inline_keyboard: [
+      [{ text: '🔙 Назад', callback_data: CALLBACK.REPORTS_MENU }]
+    ]
+  };
+  
+  Helpers.safeSend(chatId, message, keyboard);
+}
+
+function handleReportsIncomeStub(chatId) {
+  const message = `⚙️ **Функція в розробці**\n\n` +
+    `Статистика доходів буде доступна в наступній версії бота.\n\n` +
+    `Тимчасово ви можете вести облік доходів вручну.`;
+  
+  const keyboard = {
+    inline_keyboard: [
+      [{ text: '🔙 Назад до звітів', callback_data: CALLBACK.REPORTS_MENU }]
+    ]
+  };
+  
+  Helpers.safeSend(chatId, message, keyboard);
+}
+
+Обработка текстового ввода (количество дней):
+javascriptfunction handleMessage(chatId, text) {
+  const state = State.getState(chatId);
+  
+  // ... існуючі обробки ...
+  
+  // Введення кількості днів для звіту
+  if (state && state.step === STEPS.REPORTS_TRAININGS_INPUT_DAYS) {
+    Reports.sendTrainingReport(chatId, text);
+    State.clearState(chatId);
+    return;
+  }
+  
+  // ... інші обробки ...
+}
+
+13.8 Функции Sheets.gs для звонков
+Основные функции выбора:
+javascript// В Sheets.gs
+function getCompletedTrainingsByCoach(coachChatId, daysBack) {
+  try {
+    const sheet = SpreadsheetApp.openById(CONSTANTS.SPREADSHEET_ID)
+      .getSheetByName('WorkoutSchedule');
+    
+    if (!sheet) {
+      throw new Error('WorkoutSchedule sheet not found');
+    }
+    
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 3) return []; // Немає даних
+    
+    const data = sheet.getRange(3, 1, lastRow - 2, 8).getValues();
+    
+    // Розрахунок дати початку
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(today.getTime() - (daysBack * 24 * 60 * 60 * 1000));
+    
+    // Фільтрація
+    const filtered = data.filter(row => {
+      const coachId = String(row[1]); // B: CoachID
+      const studentId = row[2]; // C: StudentID
+      const date = new Date(row[3]); // D: Date
+      const status = row[5]; // F: Status
+      
+      return (
+        coachId === String(coachChatId) &&
+        status === 'COMPLETED' &&
+        date >= startDate &&
+        studentId && studentId !== ''
+      );
+    });
+    
+    // Маппинг в об'єкти
+    return filtered.map(row => ({
+      id: row[0],
+      coachId: row[1],
+      studentId: row[2],
+      date: row[3],
+      time: row[4],
+      status: row[5],
+      updatedAt: row[6],
+      calEventId: row[7]
+    }));
+    
+  } catch (error) {
+    logError(error, 'Sheets.getCompletedTrainingsByCoach');
+    throw error;
+  }
+}
+
+13.9 Критические бизнес-правила для здоровья
+✅ ОБОВ'ЯЗКОВО:
+
+Сохранить ТИЛЬКИ записи о статусе = ЗАВЕРШЕНО
+Фильтровать CoachID дополнительного тренера
+Валідувати знакомства (1-365 дней)
+Корректно обработать вид "немає даних"
+Показывать уведомления украинской
+
+❌ ЗАБОРОНЕНО:
+
+Сохранить записи с другими статусами (ЗАБРОНИРОВАНО, ОТМЕНЕНО и т. д.)
+Покажите данных лучших тренеров
+Допускается введение >365 дней или <1 дня
+Падать с помилкой при более раннем результате
+
+
+13.10 Майбутні расширения (v2.0)
+Планується дополнения:
+
+Звіт по домохозяйствм:
+
+Новое поле в графике тренировок: Цена (количество тренировок)
+Пидрахунок загальной суммы за период
+Розподил по урокам
+
+
+Экспорт звітів:
+
+Генерация файла CSV/Excel
+Відправка через sendDocument
+
+
+Графики активности:
+
+Розподил тренувань по дням тижня
+Тренди (простання/падіння)
+
+
+Повседневная аналитика:
+
+Поточный период против предыдущего
+% змини активности
+
+================================================================================================
+
+## 14. КРИТИЧНІ БІЗНЕС-ПРАВИЛА
+
+### 14.1 Заборонено
+
+❌ Створювати окремі таблиці TRAINERS/STUDENTS  
+❌ Використовувати magic strings (тільки CONSTANTS)  
+❌ Зберігати INVITE_ після активації  
+❌ Записувати тренування тренера з його ChatID в Coach Mode  
+❌ Показувати вправи з Active = "NO"  
+❌ Змінювати порядок колонок в таблицях  
+❌ Використовувати підкреслення в callback_data для розділення параметрів  
+
+---
+
+### 14.2 Обов'язково
+
+✅ Всі дані з рядка 3 (1-2 заголовки)  
+✅ UserID = ChatID для звичайних користувачів  
+✅ UserID = ChatID = INVITE_XXXX для неактивованих  
+✅ CoachID заповнений тільки для student  
+✅ Instagram + CalendarId обов'язкові для coach  
+✅ Префікс "FIT:" для всіх подій Calendar  
+✅ Двокрапка `:` для розділення в callback_data  
+✅ Українська мова в UI  
+
+==========================================================================================
+
+CALLBACK_DATA ФОРМАТ (БІЗНЕС-ЛОГІКА)
+
+📅 РОЗДІЛ 15: ФОРМАТ CALLBACK_DATA (ГІБРИДНИЙ ПІДХІД)
+🎯 Загальні правила
+FIT 3.0 використовує гібридний підхід:
+
+Тип 1: Статичні команди (тільки enum) → дані в State
+Тип 2: Команда + 1 ID → "ACTION:ID"
+Тип 3: Команда + параметри → "ACTION:PARAM1:PARAM2"
+
+
+ТИП 1: Статичні команди (FSM процеси)
+Використання: Багатокрокові процеси, складні дані
+Приклади:
+javascript// Реєстрація
+"REG_ROLE_STUDENT"
+"REG_ROLE_COACH"
+"GENDER_MALE"
+"GENDER_FEMALE"
+
+// Тренування (вибір режиму)
+"TRAIN_START"
+"TRAIN_SELF"
+"TRAIN_MODE_SINGLE"
+"TRAIN_MODE_CIRCUIT"
+
+// Всі дані зберігаються в State
+State.set(chatId, {
+  step: 'training_group_select',
+  mode: 'SINGLE',
+  targetUserId: chatId
+})
+
+ТИП 2: Команда + ID (одношагові дії)
+Використання: Вибір об'єкта по ID, навігація
+Формат: "ACTION:ID"
+Приклади:
+javascript// Вибір учня тренером
+"VIEW_STUDENT:123456789"
+
+// Вибір вправи
+"CHOOSE_EXERCISE:42"
+
+// Детальний перегляд історії
+"HISTORY_DETAIL:0"
+
+// Скасування запису
+"CANCEL_BOOKING:rec123"
+Парсинг:
+javascriptconst parts = callbackData.split(':');
+const action = parts[0];       // "VIEW_STUDENT"
+const id = parts[1];           // "123456789"
+
+if (action === "VIEW_STUDENT") {
+  Training.viewStudent(chatId, id);
+}
+
+ТИП 3: Команда + параметри (2-3 значення)
+Використання: Коротки параметри (дати, час, кілька ID)
+Формат: "ACTION:PARAM1:PARAM2:PARAM3"
+Приклади:
+javascript// Вибір слоту розкладу
+"BOOK_SLOT:2026-02-10:10:00"
+
+// Фільтр історії по групі
+"HISTORY_GROUP:Груди"
+
+// Вибір дати та часу
+"SCHEDULE_CREATE:2026-02-15:14:00"
+Парсинг:
+javascriptconst parts = callbackData.split(':');
+const action = parts[0];       // "BOOK_SLOT"
+const date = parts[1];         // "2026-02-10"
+const time = parts[2];         // "10:00"
+
+Schedule.bookSlot(chatId, date, time);
+
+ТАБЛИЦЯ ВІДПОВІДНОСТІ: КОЛИ ЩО ВИКОРИСТОВУВАТИ
+СитуаціяТипПрикладДані в State?Реєстрація (багато кроків)Тип 1REG_ROLE_STUDENT✅ ТакТренування (складні дані)Тип 1TRAIN_START✅ ТакВибір учня зі спискуТип 2VIEW_STUDENT:123❌ НіВибір вправиТип 2CHOOSE_EXERCISE:5❌ НіБронювання слоту (дата+час)Тип 3BOOK_SLOT:2026-02-10:10:00❌ НіФільтр історії (група)Тип 3HISTORY_GROUP:Груди❌ НіКруговий сет (список вправ)Тип 1TRAIN_MODE_CIRCUIT✅ Так
+
+SELF-CHECK ПИТАННЯ
+
+"Це FSM процес з кількома кроками?" → Тип 1 (дані в State)
+"Це просто відкриття об'єкта по ID?" → Тип 2 (ID в callback)
+"Потрібно 2-3 коротких параметри?" → Тип 3 (параметри через :)
+"Даних більше 3 або вони складні?" → Тип 1 (дані в State)
+
+
+ОБМЕЖЕННЯ
+Telegram callback_data: Максимум 64 байти
+Рекомендації:
+
+Тип 1: Без обмежень (дані в State)
+Тип 2: ID коротке (до 20 символів)
+Тип 3: Сума всіх параметрів < 50 символів
+
+Якщо не вкладаєшся → використовуй Тип 1 (State)
+
+==========================================================================================================
+
+
+РОЗДІЛ 16:ERROR HANDLING MAP - КАРТА ОБРОБКИ ПОМИЛОК
+Версія: 1.0
+Дата: 03.02.2026
+Призначення: Система обробки помилок, логування та recovery в FIT 3.0
+
+📋 КЛАСИФІКАЦІЯ ПОМИЛОК
+Рівні серйозності:
+РівеньНазваОписДіяЛог🟢 INFOІнформаційніЗвичайний хід роботиПродовжитиНі🔵 WARNINGПопередженняНезвичайна ситуація, але не критичнаПродовжити з повідомленнямТак🟡 ERRORПомилкаОперація не виконана, потрібна повторна спробаRetry або показати помилкуТак🔴 CRITICALКритичнаСистема не може продовжувати роботуПовне зупинення flowТак + Alert
+
+🎯 ТИПИ ПОМИЛОК
+1. ВАЛІДАЦІЙНІ ПОМИЛКИ (Validation Errors)
+КодПомилкаПрикладРівеньПовідомлення користувачуRecoveryV001Порожнє полеІм'я не введено🔵 WARNING"Введіть своє ім'я"Повторити запитV002Невалідний формат дати"32.13.2025"🔵 WARNING"Невірний формат. Використовуйте дд.мм.рррр"Повторити запитV003Число поза діапазономВага = 500 кг🔵 WARNING"Введіть реальне значення (30-300 кг)"Повторити запитV004Невалідний формат коду"INVIT_123" (без E)🔵 WARNING"Код має починатися з INVITE_"Повторити запитV005Код не існуєINVITE_XXXX не знайдено🟡 ERROR"Код не існує. Перевірте правильність"Повторити або скасуватиV006Код вже використаноChatID != UserID🟡 ERROR"Код вже активовано іншим користувачем"СкасуватиV007Невалідний email"notanemail"🔵 WARNING"Введіть правильний email або пропустіть"ПовторитиV008Занадто довгий текстІм'я > 30 символів🔵 WARNING"Максимум 30 символів"Повторити запит
+Обробник: Кожен FSM state в handleTextMessage()
+Приклад коду:
+javascript// Registration.gs - handleTextMessage()
+if (state.step === 'reg_first_name') {
+  const firstName = text.trim();
+  
+  // V001: Порожнє поле
+  if (!firstName) {
+    Helpers.safeSend(chatId, "❌ Введіть своє ім'я");
+    return; // Recovery: повторити запит
+  }
+  
+  // V008: Занадто довгий
+  if (firstName.length > 30) {
+    Helpers.safeSend(chatId, "❌ Максимум 30 символів");
+    return;
+  }
+  
+  // OK - продовжити
+  state.firstName = firstName;
+  State.set(chatId, state);
+  // ...
+}
+
+2. ПОМИЛКИ БД (Database Errors)
+КодПомилкаПрикладРівеньПовідомлення користувачуRecoveryD001Користувач не знайденоgetUserByChatId() → null🟡 ERROR"Профіль не знайдено. Почніть з /start"State.clear() + /startD002Duplicate записІнвайт-код вже існує🔴 CRITICAL"Помилка створення коду. Спробуйте ще раз"Генерувати новий кодD003Spreadsheet timeoutgetDataRange() timeout🟡 ERROR"Сервер перевантажений. Спробуйте через хвилину"Retry 3x, потім показати помилкуD004Колонка не існуєgetRange(row, 999)🔴 CRITICAL"Системна помилка. Зв'яжіться з підтримкою"Логування + Alert розробникуD005Невалідний діапазонgetRange('ZZ999')🔴 CRITICAL"Системна помилка"Логування + AlertD006Write timeoutappendRow() timeout🟡 ERROR"Не вдалося зберегти. Спробуйте ще раз"Retry 3xD007Read-only modeSheet захищено🔴 CRITICAL"Система на технічному обслуговуванні"Показати help
+Обробник: Sheets.gs + try-catch у викликаючих функціях
+Приклад коду:
+javascript// User.gs - getByChatId()
+function getByChatId(chatId) {
+  try {
+    const user = Sheets.getUserByChatId(chatId);
+    
+    if (!user) {
+      // D001: Користувач не знайдено
+      Logger.log(`D001: User not found, chatId=${chatId}`);
+      return null; // Викликаючий код обробить
+    }
+    
+    return user;
+    
+  } catch (error) {
+    // D003, D004, D005 - критичні помилки БД
+    Logger.log(`CRITICAL: Database error in getByChatId: ${error}`);
+    logError_('User.getByChatId', error.message, error.stack);
+    throw error; // Прокинути вище
+  }
+}
+
+// Registration.gs - start()
+function start(chatId) {
+  try {
+    const existingUser = User.getByChatId(chatId);
+    
+    if (existingUser) {
+      // Користувач вже є - показати меню
+      State.clear(chatId);
+      Menu.showMainMenu(chatId);
+      return;
+    }
+    
+    // Новий користувач - почати реєстрацію
+    // ...
+    
+  } catch (error) {
+    // Catch критичних помилок з User.getByChatId()
+    Helpers.safeSend(chatId, "⚠️ Системна помилка. Спробуйте /start через хвилину");
+    logError_('Registration.start', error.message, error.stack);
+  }
+}
+
+3. ПОМИЛКИ CALENDAR API (Calendar Errors)
+КодПомилкаПрикладРівеньПовідомлення користувачуRecoveryC001Calendar не знайденоgetCalendarById() → null🟡 ERROR"Календар не знайдено. Перевірте налаштування"Запропонувати оновити CalendarIDC002Event не знайденоgetEventById() → null🟡 ERROR"⚠️ Запис видалено в календарі"Видалити з WorkoutScheduleC003No permissionНедостатньо прав🔴 CRITICAL"Немає доступу до календаря. Надайте права"Показати інструкціюC004API quota exceededToo many requests🟡 ERROR"Забагато запитів. Зачекайте хвилину"Delay + RetryC005Event conflictСлот вже зайнятий🔵 WARNING"⚠️ Це вікно вже неактуальне"Показати нові слотиC006Invalid event dataНевалідна дата події🔴 CRITICAL"Помилка створення події"Логування + відкат
+Обробник: Calendar.gs + try-catch у Schedule.gs
+Приклад коду:
+javascript// Calendar.gs - updateEvent()
+function updateEvent(eventId, title, description) {
+  try {
+    const calendar = CalendarApp.getCalendarById(CONSTANTS.CALENDAR_ID);
+    
+    if (!calendar) {
+      // C001: Calendar не знайдено
+      throw new Error('C001: Calendar not found');
+    }
+    
+    const event = calendar.getEventById(eventId);
+    
+    if (!event) {
+      // C002: Event не знайдено
+      throw new Error('C002: Event not found');
+    }
+    
+    event.setTitle(title);
+    event.setDescription(description);
+    return true;
+    
+  } catch (error) {
+    if (error.message.includes('C001') || error.message.includes('C002')) {
+      // Очікувані помилки - прокинути
+      throw error;
+    }
+    
+    // C003, C004, C006 - неочікувані помилки
+    Logger.log(`CRITICAL: Calendar API error: ${error}`);
+    logError_('Calendar.updateEvent', error.message, error.stack);
+    throw error;
+  }
+}
+
+// Schedule.gs - executeConfirm()
+function executeConfirm(chatId, slotId) {
+  try {
+    const slot = Sheets.getSlotById(slotId);
+    const student = User.getByChatId(slot.studentId);
+    
+    // Оновити Calendar
+    Calendar.updateEvent(
+      slot.calendarEventId,
+      `FIT: ${student.firstName}`,
+      'Заброньовано'
+    );
+    
+    // Оновити Sheets
+    Sheets.updateSlotStatus(slotId, 'BOOKED');
+    
+    // Уведомити
+    Helpers.safeSend(slot.studentId, "✅ Запис підтверджено!");
+    Helpers.safeSend(chatId, `✅ Підтверджено запис для ${student.firstName}`);
+    
+  } catch (error) {
+    if (error.message.includes('C002')) {
+      // C002: Event видалено в календарі
+      Helpers.safeSend(chatId, "⚠️ Помилка: запис видалено в календарі");
+      Sheets.deleteSlot(slotId); // Очистити БД
+      
+    } else {
+      // Інші критичні помилки
+      Helpers.safeSend(chatId, "⚠️ Не вдалося підтвердити запис. Спробуйте пізніше");
+      logError_('Schedule.executeConfirm', error.message, error.stack);
+    }
+  }
+}
+
+4. ПОМИЛКИ TELEGRAM API (Telegram Errors)
+КодПомилкаПрикладРівеньПовідомлення користувачуRecoveryT001Network timeoutUrlFetchApp timeout🟡 ERROR(не показуємо - просто логуємо)Retry 3xT002Chat not foundUser заблокував бота🔵 WARNING(не показуємо)Пропустити відправкуT003Message too longText > 4096 символів🔵 WARNING(розбити на частини)Split messageT004Invalid keyboardНевалідна структура кнопок🔴 CRITICALПоказати текстове менюЛогуванняT005Rate limitToo many requests🟡 ERROR(не показуємо)Delay 1s + RetryT006Invalid chat_idChatID не число🔴 CRITICAL"Системна помилка"Логування + Alert
+Обробник: Helpers.gs - функція safeSend()
+Приклад коду:
+javascript// Helpers.gs - safeSend()
+function safeSend(chatId, text, options) {
+  const MAX_RETRIES = 3;
+  let attempt = 0;
+  
+  while (attempt < MAX_RETRIES) {
+    try {
+      // T003: Розбити довге повідомлення
+      if (text.length > 4096) {
+        const chunks = splitMessage_(text, 4096);
+        chunks.forEach(chunk => {
+          callTelegram_('sendMessage', {
+            chat_id: chatId,
+            text: chunk,
+            ...options
+          });
+        });
+        return true;
+      }
+      
+      // Звичайна відправка
+      const response = callTelegram_('sendMessage', {
+        chat_id: chatId,
+        text: text,
+        ...options
+      });
+      
+      return response.ok;
+      
+    } catch (error) {
+      attempt++;
+      
+      // T002: Chat not found
+      if (error.message.includes('chat not found')) {
+        Logger.log(`T002: Chat not found, chatId=${chatId}`);
+        return false; // Не retry, просто пропустити
+      }
+      
+      // T005: Rate limit
+      if (error.message.includes('Too Many Requests')) {
+        Logger.log(`T005: Rate limit, attempt ${attempt}/${MAX_RETRIES}`);
+        Utilities.sleep(1000); // Затримка 1 секунда
+        continue; // Retry
+      }
+      
+      // T001: Network timeout
+      if (attempt < MAX_RETRIES) {
+        Logger.log(`T001: Network timeout, attempt ${attempt}/${MAX_RETRIES}`);
+        Utilities.sleep(500);
+        continue; // Retry
+      }
+      
+      // Всі retry вичерпано
+      Logger.log(`CRITICAL: Failed to send message after ${MAX_RETRIES} attempts`);
+      logError_('Helpers.safeSend', error.message, error.stack);
+      return false;
+    }
+  }
+}
+
+5. FSM ПОМИЛКИ (State Machine Errors)
+КодПомилкаПрикладРівеньПовідомлення користувачуRecoveryS001State не знайденоgetState() → null🔵 WARNING"Почніть з /start"State.clear() + redirect /startS002Невалідний stepstep не існує в CONSTANTS🔴 CRITICAL"Помилка стану. Використайте /start"State.clear() + redirectS003State expiredМинуло > TTL🔵 WARNING"Сесія закінчилась. Почніть спочатку"State.clear() + restart flowS004Конфлікт станівДва одночасні операції🟡 ERROR"Зачекайте завершення попередньої дії"Показати поточний станS005Missing required fieldstate.role === undefined🔴 CRITICAL"Помилка. Почніть з /start"State.clear() + redirect
+Обробник: Router.gs + кожен Handler модуль
+Приклад коду:
+javascript// Router.gs - handleTextMessage_()
+function handleTextMessage_(chatId, text) {
+  const state = State.getState(chatId);
+  
+  // S001: State не знайдено
+  if (!state || !state.step) {
+    Logger.log(`S001: No state found for chatId=${chatId}`);
+    Helpers.safeSend(chatId, "Почніть з /start");
+    return;
+  }
+  
+  // S002: Невалідний step
+  if (!CONSTANTS.STEPS[state.step.toUpperCase()]) {
+    Logger.log(`S002: Invalid step: ${state.step}`);
+    State.clear(chatId);
+    Helpers.safeSend(chatId, "❌ Помилка стану. Використайте /start");
+    return;
+  }
+  
+  // Розподіл по модулях
+  if (state.step.startsWith('reg_')) {
+    Registration.handleTextMessage(chatId, text, state);
+  } else if (state.step.startsWith('profile_')) {
+    Profile.handleTextMessage(chatId, text, state);
+  }
+  // ...
+}
+
+// Registration.gs - handleTextMessage()
+function handleTextMessage(chatId, text, state) {
+  // S005: Missing required field
+  if (state.step === 'reg_gender' && !state.role) {
+    Logger.log(`S005: Missing role in state, chatId=${chatId}`);
+    State.clear(chatId);
+    Helpers.safeSend(chatId, "❌ Помилка. Почніть реєстрацію з /start");
+    return;
+  }
+  
+  // Обробка...
+}
+
+🔧 ЦЕНТРАЛІЗОВАНЕ ЛОГУВАННЯ
+Функція: logError_(context, message, stack)
+Розташування: Helpers.gs або Audit.gs
+javascript/**
+ * Централізована функція логування помилок
+ * @param {string} context - Модуль.функція (наприклад, "Registration.start")
+ * @param {string} message - Текст помилки
+ * @param {string} stack - Stack trace (опціонально)
+ */
+function logError_(context, message, stack) {
+  try {
+    const sheet = SpreadsheetApp
+      .openById(CONSTANTS.SPREADSHEET_ID)
+      .getSheetByName('Logs');
+    
+    sheet.appendRow([
+      new Date(),           // Timestamp
+      context,              // Context (модуль)
+      message,              // Message
+      stack || 'N/A'        // Stack trace
+    ]);
+    
+    // Якщо критична помилка - надіслати alert (опціонально)
+    if (message.includes('CRITICAL')) {
+      sendAlertToAdmin_(context, message);
+    }
+    
+  } catch (logError) {
+    // Якщо навіть логування падає - записати в Logger
+    Logger.log(`FAILED TO LOG ERROR: ${logError}`);
+    Logger.log(`Original error: ${context} - ${message}`);
+  }
+}
+
+/**
+ * Відправити критичний alert адміну (опціонально)
+ */
+function sendAlertToAdmin_(context, message) {
+  const ADMIN_CHAT_ID = CONSTANTS.ADMIN_CHAT_ID; // Додати в Constants
+  
+  if (!ADMIN_CHAT_ID) return;
+  
+  const alertText = `🚨 КРИТИЧНА ПОМИЛКА\n\n` +
+                    `Модуль: ${context}\n` +
+                    `Помилка: ${message}\n` +
+                    `Час: ${new Date().toLocaleString('uk-UA')}`;
+  
+  try {
+    Helpers.safeSend(ADMIN_CHAT_ID, alertText);
+  } catch (error) {
+    Logger.log(`Failed to send admin alert: ${error}`);
+  }
+}
+
+📊 МАТРИЦЯ ПОМИЛКА → ДІЯ
+Тип помилкиПоказати користувачу?Логувати?Retry?Скасувати flow?Alert адміну?Валідаційні (V00X)✅ Так❌ Ні❌ Ні❌ Ні❌ НіБД (D001-D002)✅ Так✅ Так✅ Так (3x)❌ Ні❌ НіБД (D003-D007)✅ Так✅ Так✅ Так (3x)✅ Так✅ ТакCalendar (C001-C002)✅ Так✅ Так✅ Так (2x)❌ Ні❌ НіCalendar (C003-C006)✅ Так✅ Так✅ Так (2x)✅ Так✅ ТакTelegram (T001)❌ Ні✅ Так✅ Так (3x)❌ Ні❌ НіTelegram (T002-T003)❌ Ні✅ Так❌ Ні❌ Ні❌ НіTelegram (T004-T006)✅ Так✅ Так❌ Ні✅ Так✅ ТакFSM (S001-S003)✅ Так✅ Так❌ Ні✅ Так (redirect)❌ НіFSM (S004-S005)✅ Так✅ Так❌ Ні✅ Так✅ Так
+
+🎯 СТРАТЕГІЇ RECOVERY
+Стратегія 1: Retry with Backoff ✅
+javascriptfunction retryOperation(operation, maxRetries = 3, delayMs = 500) {
+  let attempt = 0;
+  
+  while (attempt < maxRetries) {
+    try {
+      return operation(); // Спроба виконати
+    } catch (error) {
+      attempt++;
+      
+      if (attempt >= maxRetries) {
+        throw error; // Всі спроби вичерпано
+      }
+      
+      Logger.log(`Retry attempt ${attempt}/${maxRetries}`);
+      Utilities.sleep(delayMs * attempt); // Exponential backoff
+    }
+  }
+}
+
+// Використання:
+const user = retryOperation(() => User.getByChatId(chatId));
+
+Стратегія 2: Graceful Degradation ✅
+javascript// Якщо Calendar API не доступний - працювати без синхронізації
+function syncSlots(coachId) {
+  try {
+    Calendar.syncSlots(coachId);
+  } catch (error) {
+    Logger.log(`WARNING: Calendar sync failed, using Sheets only`);
+    logError_('Schedule.syncSlots', error.message, error.stack);
+    // Продовжити роботу БЕЗ синхронізації
+  }
+}
+
+Стратегія 3: State Reset ✅
+javascript// При критичних помилках FSM - повний reset
+function handleCriticalFSMError(chatId) {
+  State.clear(chatId);
+  Helpers.safeSend(chatId, 
+    "❌ Виникла помилка. Почніть спочатку з /start\n\n" +
+    "Якщо проблема повторюється - зв'яжіться з підтримкою."
+  );
+}
+
+✅ CHECKLIST ОБРОБКИ ПОМИЛОК
+При написанні нової функції перевірити:
+
+ Всі зовнішні виклики обгорнуті в try-catch
+ Валідація вхідних параметрів (null checks, type checks)
+ Retry логіка для мережевих операцій (DB, API)
+ Логування помилок через logError_()
+ Користувацькі повідомлення зрозумілі та з емоджі
+ Recovery strategy визначена (retry/skip/reset)
+ Критичні помилки не ламають весь бот
+ Admin alerts налаштовані для критичних помилок
+
+
+🎯 ВИКОРИСТАННЯ
+Для розробників:
+
+Обгортати ВСІ зовнішні виклики в try-catch
+Використовувати коди помилок (V00X, D00X, C00X, T00X, S00X)
+Логувати через logError_() замість просто Logger.log()
+
+Для тестування:
+
+Тестувати кожен тип помилки
+Перевіряти retry логіку
+Симулювати network timeouts та API failures
+
+Для моніторингу:
+
+Переглядати таблицю Logs щодня
+Шукати повторювані помилки (паттерни)
+Реагувати на критичні alerts
+
+
+===============================================================================================
+
+ РОЗДІЛ 17: АРХІТЕКТУРНІ ОБМЕЖЕННЯ (VETO RULES)
+🔴 VETO RULE 1: COMMAND-DATA SEPARATION
+Заборонено:
+
+❌ Передавати дані (ID, індекси) в callback_data для FSM процесів
+❌ Конкатенувати динамічні значення в callback_data для складних процесів
+❌ Використовувати "магічні рядки" замість Enum
+
+Обов'язково:
+
+✅ callback_data = тільки статичні Enum (для FSM)
+✅ Всі дані (ID, списки, об'єкти) → State
+✅ Виключення: Прості одношагові дії (VIEW_STUDENT:ID, BOOK_SLOT:DATE:TIME)
+
+Приклад ПОРУШЕННЯ:
+javascript// ❌ НЕПРАВИЛЬНО (FSM з даними в callback):
+callback_data: "CHOOSE_ROLE_STUDENT_МАРІЯ_КОВАЛЬ"  // Магічний рядок
+
+// ✅ ПРАВИЛЬНО:
+callback_data: "CHOOSE_ROLE_STUDENT"  // Enum
+State: { step: "reg_role", data: { name: "Марія Коваль" }}
+Приклад ДОЗВОЛЕНОГО:
+javascript// ✅ OK для одношагової дії:
+callback_data: "VIEW_STUDENT:123456789"  // Тип 2
+Вплив на бізнес:
+
+Спрощує налагодження FSM
+Уникає переповнення 64-байтного ліміту Telegram
+Дозволяє валідацію даних окремо від команд
+
+
+🔴 VETO RULE 2: MODULE RESPONSIBILITY BOUNDARIES
+Заборонено:
+
+❌ Будь-який метод поза canonical API модуля
+❌ UI логіка в non-UI модулях
+❌ Бізнес-логіка в routing/helper модулях
+❌ Доступ до даних в UI/FSM модулях
+
+Обов'язково:
+
+✅ Кожен модуль = ОДНА відповідальність
+✅ Public API = ТІЛЬКИ як в архітектурних документах
+✅ Робота через boundary = тільки делегування
+
+Приклад ПОРУШЕННЯ:
+javascript// ❌ НЕПРАВИЛЬНО: Profile робить вставку в БД напряму
+function saveProfile(chatId, data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Users');
+  sheet.appendRow([data.name, data.age]);  // ПОРУШЕННЯ!
+}
+
+// ✅ ПРАВИЛЬНО: Profile делегує Sheets
+function saveProfile(chatId, data) {
+  Sheets.insertUser({
+    chatId: chatId,
+    firstName: data.name,
+    age: data.age
+  });
+}
+Вплив на бізнес:
+
+Уникає дублювання логіки
+Легше знайти де зламалось
+Можна тестувати модулі окремо
+
+
+🔴 VETO RULE 3: FAÇADE & STUB PROHIBITION
+Заборонено:
+
+❌ try/catch для приховування відсутніх функцій
+❌ Placeholder реалізації
+❌ Коментарі "not implemented yet" з активними викликами
+❌ Придушення помилок без re-throw
+
+Обов'язково:
+
+✅ Функція існує → викликай її
+✅ Функція не існує → НЕ викликай
+✅ Відсутня залежність → FAIL FAST
+
+Приклад ПОРУШЕННЯ:
+javascript// ❌ НЕПРАВИЛЬНО: Фасад приховує проблему
+try {
+  User.calculateAge(birthDate);  // Функції не існує!
+} catch (e) {
+  // Мовчки ігноруємо
+}
+
+// ✅ ПРАВИЛЬНО: Якщо функції немає - не викликаємо
+if (typeof User.calculateAge === 'function') {
+  User.calculateAge(birthDate);
+}
+Вплив на бізнес:
+
+Виявляє проблеми на етапі розробки (не на production)
+Уникає "тихих" помилок
+Прискорює налагодження
+
+
+🔴 VETO RULE 4: DATA CONTRACT COMPLIANCE
+Заборонено:
+
+❌ Будь-яке відхилення від canonical table schemas
+❌ Припущення про структуру даних
+❌ "Творче" використання полів
+❌ "Зручні" зміни форматів
+
+Обов'язково:
+
+✅ ВСІ записи = ТОЧНА відповідність схемі
+✅ ВСІ маппінги полів = перевірені проти документації
+✅ ВСІ типи даних = як вказано
+✅ ВСІ порядки колонок = як документовано
+
+Приклад ПОРУШЕННЯ:
+javascript// ❌ НЕПРАВИЛЬНО: Міняємо порядок колонок "для зручності"
+sheet.appendRow([
+  firstName,  // A ← має бути CreatedAt!
+  chatId,     // B
+  userId      // C ← має бути ChatID!
+]);
+
+// ✅ ПРАВИЛЬНО: Точний порядок з еталону
+sheet.appendRow([
+  new Date(),    // A: CreatedAt
+  userId,        // B: UserID
+  chatId,        // C: ChatID
+  firstName      // D: FirstName
+  // ... всі 20 колонок
+]);
+Вплив на бізнес:
+
+Уникає корупції даних
+Дозволяє міграції та backup
+Легше інтегруватись з іншими системами
+
+
+🔴 VETO RULE 5: ENUM-ONLY ARCHITECTURE
+Заборонено:
+
+❌ String literals для FSM states
+❌ String literals для status codes
+❌ String literals для role/gender/goal values
+❌ Hardcoded sheet names/column indexes
+
+Обов'язково:
+
+✅ ВСІ states = constants.FSM_STATES
+✅ ВСІ statuses = constants.STATUS
+✅ ВСІ sheet references = constants.SHEETS.NAME
+✅ ВСІ column references = constants.COLUMNS.NAME
+
+Приклад ПОРУШЕННЯ:
+javascript// ❌ НЕПРАВИЛЬНО: Магічний рядок
+if (user.role === "student") {  // ПОРУШЕННЯ!
+  // ...
+}
+
+// ✅ ПРАВИЛЬНО: Використання Enum
+if (user.role === CONSTANTS.ROLES.STUDENT) {
+  // ...
+}
+Вплив на бізнес:
+
+Уникає опечаток (typo = компілятор побачить)
+Легше рефакторити (змінити значення в одному місці)
+Автозаповнення в IDE
+
+
+📋 PRE-COMMIT VERIFICATION MATRIX
+Перед комітом БУДЬ-ЯКОГО коду:
+
+ Чи використовую constants для всіх значень?
+ Чи дотримуюсь responsibility boundaries?
+ Чи немає facade/stub патернів?
+ Чи відповідає data contract еталону?
+ Чи callback_data правильного типу?
+
+========================================================================
+
+**КІНЕЦЬ ДОКУМЕНТА**
+
+Версія: 1.1  
+Дата останнього оновлення: 03.02.2026
+
