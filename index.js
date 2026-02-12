@@ -68,8 +68,9 @@ server.listen(PORT, () => {
   const hasBot = !!process.env.BOT_TOKEN;
   const hasSupabaseUrl = !!process.env.SUPABASE_URL;
   const hasSupabaseKey = !!process.env.SUPABASE_ANON_KEY;
-  console.log('Env: BOT_TOKEN=' + (hasBot ? 'ok' : 'MISSING') + ' SUPABASE_URL=' + (hasSupabaseUrl ? 'ok' : 'MISSING') + ' SUPABASE_ANON_KEY=' + (hasSupabaseKey ? 'ok' : 'MISSING'));
+  const railwayEnv = typeof process.env.RAILWAY_ENVIRONMENT !== 'undefined';
+  console.log('Env: BOT_TOKEN=' + (hasBot ? 'ok' : 'MISSING') + ' SUPABASE_URL=' + (hasSupabaseUrl ? 'ok' : 'MISSING') + ' SUPABASE_ANON_KEY=' + (hasSupabaseKey ? 'ok' : 'MISSING') + ' RAILWAY_ENV=' + (railwayEnv ? 'yes' : 'no'));
   if (!hasBot || !hasSupabaseUrl || !hasSupabaseKey) {
-    console.error('Set Variables in Railway (Fit_3.0 → Variables) and Apply/Redeploy');
+    console.error('Set BOT_TOKEN, SUPABASE_URL, SUPABASE_ANON_KEY in Railway → Fit_3.0 → Variables, then Redeploy');
   }
 });
