@@ -36,11 +36,14 @@ CREATE TABLE IF NOT EXISTS users (
   PRIMARY KEY (chat_id)
 );
 
--- 3. Бібліотека вправ
+-- 3. Бібліотека вправ (group_level1/2/3, name_ua, name_ru)
 CREATE TABLE IF NOT EXISTS exercise_library (
   id              integer PRIMARY KEY,
-  group_name      text,
-  exercise_name   text,
+  group_level1    text,
+  group_level2    text,
+  group_level3    text,
+  name_ua         text,
+  name_ru         text,
   equipment       text,
   active          text,
   comment         text,

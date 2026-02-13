@@ -23,8 +23,9 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 const folderPath = process.argv[2];
+const onlyTable = process.argv[3]; // опційно: імпортувати тільки цю таблицю (напр. exercise_library)
 if (!folderPath) {
-  console.error('Вкажіть шлях до папки FIT_Export: node import-to-supabase.mjs "C:\\path\\to\\FIT_Export_..."');
+  console.error('Вкажіть шлях до папки FIT_Export: node import-to-supabase.mjs "C:\\path\\to\\FIT_Export_..." [exercise_library]');
   process.exit(1);
 }
 
@@ -69,6 +70,28 @@ async function insertBatch(table, rows) {
   return { count: rows.length };
 }
 
+function transformExerciseLibrary(rows) {
+  const hasOldFormat = rows.length > 0 && (rows[0].group_name != null || rows[0].exercise_name != null) && rows[0].name_ua == null;
+  if (!hasOldFormat) return rows;
+  return rows.map((r, i) => ({
+    id: r.id != null && !Number.isNaN(Number(r.id)) ? Number(r.id) : i + 1,
+    group_level1: r.group_level1 ?? r.group_name ?? '',
+    group_level2: r.group_level2 ?? r.exercise_name ?? '',
+    group_level3: r.group_level3 ?? r.equipment ?? '',
+    name_ua: r.name_ua ?? r.active ?? '',
+    name_ru: r.name_ru ?? r.comment ?? '',
+    equipment: r.equipment ?? r.focus_point ?? '',
+    active: r.common_mistakes ?? r.active ?? 'YES',
+    comment: r.comment ?? '',
+    focus_point: r.focus_point ?? '',
+    common_mistakes: r.common_mistakes ?? '',
+    proper_feeling: r.proper_feeling ?? '',
+    static_holds: r.static_holds ?? '',
+    youtube_link: r.youtube_link ?? '',
+    my_channel_link: r.my_channel_link ?? ''
+  }));
+}
+
 async function importTable(tableName) {
   const filePath = join(folderPath, tableName + '.json');
   if (!existsSync(filePath)) {
@@ -77,7 +100,8 @@ async function importTable(tableName) {
   }
   let rows = loadJson(filePath);
   if (tableName === 'exercise_library') {
-    rows = rows.filter((r) => r.id != null && r.id !== '');
+    rows = transformExerciseLibrary(rows);
+    rows = rows.filter((r) => r.id != null && r.id !== '' && !Number.isNaN(Number(r.id)));
     if (rows.length === 0) {
       console.log(`  [пусто] ${tableName}.json — немає записів з валідним id`);
       return 0;
@@ -98,10 +122,12 @@ async function importTable(tableName) {
 }
 
 async function main() {
+  const tablesToImport = onlyTable ? [onlyTable] : TABLES;
+  if (onlyTable) console.log('Імпорт тільки таблиці:', onlyTable);
   console.log('Імпорт з папки:', folderPath);
   console.log('Supabase URL:', SUPABASE_URL);
   console.log('---');
-  for (const table of TABLES) {
+  for (const table of tablesToImport) {
     try {
       await importTable(table);
     } catch (err) {
