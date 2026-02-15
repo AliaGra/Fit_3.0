@@ -16,13 +16,14 @@ var COLS = {
   NAME_RU: 5,
   EQUIPMENT: 6,
   ACTIVE: 7,
-  COMMENT: 8,
-  FOCUS_POINT: 9,
-  COMMON_MISTAKES: 10,
-  PROPER_FEELING: 11,
-  STATIC_HOLDS: 12,
-  YOUTUBE_LINK: 13,
-  MY_CHANNEL_LINK: 14
+  VID: 8,          // I — вид: базова, изоляция, стабилизация, растяжка
+  DIFFICULTY: 9,   // J — сложность: высокая, средняя, низкая
+  FOCUS_POINT: 10,
+  COMMON_MISTAKES: 11,
+  PROPER_FEELING: 12,
+  STATIC_HOLDS: 13,
+  YOUTUBE_LINK: 14,
+  MY_CHANNEL_LINK: 15
 };
 
 function getSpreadsheetId() {
@@ -43,7 +44,7 @@ function exportExerciseLibrary() {
   if (lastRow < 3) {
     return [];
   }
-  var data = sheet.getRange(3, 1, lastRow, 15).getValues();
+  var data = sheet.getRange(3, 1, lastRow, 16).getValues();
   var result = [];
   for (var i = 0; i < data.length; i++) {
     var row = data[i];
@@ -60,7 +61,8 @@ function exportExerciseLibrary() {
       name_ru: String(row[COLS.NAME_RU] || '').trim(),
       equipment: String(row[COLS.EQUIPMENT] || '').trim(),
       active: String(row[COLS.ACTIVE] || 'YES').trim(),
-      comment: String(row[COLS.COMMENT] || '').trim(),
+      vid: String(row[COLS.VID] || '').trim(),
+      difficulty: String(row[COLS.DIFFICULTY] || '').trim(),
       focus_point: String(row[COLS.FOCUS_POINT] || '').trim(),
       common_mistakes: String(row[COLS.COMMON_MISTAKES] || '').trim(),
       proper_feeling: String(row[COLS.PROPER_FEELING] || '').trim(),

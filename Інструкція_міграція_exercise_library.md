@@ -4,9 +4,12 @@
 
 Лист **ExerciseLibrary**. Колонки (з рядка 3 — дані):
 
-| A | B | C | D | E | F | G | H | I | J | K | L | M | N | O |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| ID | group_level1 | group_level2 | group_level3 | name_ua | name_ru | equipment | active | comment | focus_point | common_mistakes | proper_feeling | static_holds | youtube_link | my_channel_link |
+| A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ID | group_level1 | group_level2 | group_level3 | name_ua | name_ru | equipment | active | vid | difficulty | focus_point | common_mistakes | proper_feeling | static_holds | youtube_link | my_channel_link |
+
+**I vid:** базова, изоляция, стабилизация, растяжка  
+**J difficulty:** высокая, средняя, низкая
 
 ID: N001, N002… (експортується як 1, 2, 3…).  
 Якщо group_level3 порожня — в боті показуємо вправу одразу.

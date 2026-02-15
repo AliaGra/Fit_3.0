@@ -46,13 +46,14 @@ CREATE TABLE IF NOT EXISTS exercise_library (
   name_ru         text,
   equipment       text,
   active          text,
-  comment         text,
   focus_point     text,
   common_mistakes text,
   proper_feeling  text,
   static_holds    text,
   youtube_link    text,
-  my_channel_link text
+  my_channel_link text,
+  vid             text,  -- вид: базова, изоляция, стабилизация, растяжка
+  difficulty      text   -- сложность: высокая, средняя, низкая
 );
 
 -- 4. Плани тренувань (coach_id → users)

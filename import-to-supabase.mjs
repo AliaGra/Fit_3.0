@@ -82,13 +82,14 @@ function transformExerciseLibrary(rows) {
     name_ru: r.name_ru ?? r.comment ?? '',
     equipment: r.equipment ?? r.focus_point ?? '',
     active: r.common_mistakes ?? r.active ?? 'YES',
-    comment: r.comment ?? '',
     focus_point: r.focus_point ?? '',
     common_mistakes: r.common_mistakes ?? '',
     proper_feeling: r.proper_feeling ?? '',
     static_holds: r.static_holds ?? '',
     youtube_link: r.youtube_link ?? '',
-    my_channel_link: r.my_channel_link ?? ''
+    my_channel_link: r.my_channel_link ?? '',
+    vid: r.vid ?? '',
+    difficulty: r.difficulty ?? ''
   }));
 }
 
