@@ -87,6 +87,8 @@ git push
 - `BOT_TOKEN` — Telegram Bot API
 - `SUPABASE_URL` — URL проєкту Supabase
 - `SUPABASE_ANON_KEY` — anon ключ Supabase
+- `REMINDER_CRON_SECRET` — секрет для endpoint `/cron/reminders?secret=XXX`
+- `REMINDER_HOURS_BEFORE` — за скільки годин до тренування нагадувати (за замовч. 2)
 
 ---
 
