@@ -17,7 +17,7 @@ FIT 3.0 — Telegram-бот для тренерів та атлетів:
 **Архітектура:**
 - **Бот:** Node.js (`index.js` + `lib/`)
 - **БД:** Supabase (PostgreSQL)
-- **Деплой:** Railway (webhook POST `/webhook`)
+- **Хостинг:** **Railway** — бот розгорнуто на Railway. Деплой: `git push` до `main` → автоматичний білд і рестарт. Зміни в боті з'являються після успішного деплою (1–3 хв). Webhook: POST `/webhook`
 - **Google Calendar:** НЕ використовується
 
 ---
@@ -79,8 +79,11 @@ git push
 
 ---
 
-## 6. ЗМІННІ СЕРЕДОВИЩА (Railway)
+## 6. ХОСТИНГ: RAILWAY
 
+Бот працює на **Railway**. Після `git push` до `main` Railway автоматично перезбирає й перезапускає сервіс — зміни в боті вступають у силу через 1–3 хв.
+
+**Змінні середовища (Railway):**
 - `BOT_TOKEN` — Telegram Bot API
 - `SUPABASE_URL` — URL проєкту Supabase
 - `SUPABASE_ANON_KEY` — anon ключ Supabase
