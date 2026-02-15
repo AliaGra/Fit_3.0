@@ -82,7 +82,7 @@
 | № | Таблиця | Відповідність експорту (ExportForSupabase.gs) |
 |---|---------|-----------------------------------------------|
 | 1 | city_list | ✓ city_id, city_name |
-| 2 | users | ✓ Усі 20 полів (created_at, user_id, chat_id, first_name, last_name, city, role, gender, age, goal, coach_id, birth_date, height, weight, waist, hip, glutes, arm, instagram, calendar_id) |
+| 2 | users | ✓ Поля: created_at, user_id, chat_id, first_name, last_name, city, role, gender, age, goal, coach_id, birth_date, height, weight, waist, hip, glutes, arm, instagram, calendar_id, experience_start_date (досвід учня, встановлюється тренером) |
 | 3 | exercise_library | ✓ id, group_name, exercise_name, equipment, active, comment, focus_point, common_mistakes, proper_feeling, static_holds, youtube_link, my_channel_link |
 | 4 | training_plans | ✓ plan_id, coach_id, plan_name, goal, level, description, is_active |
 | 5 | training_plan_exercises | ✓ id (auto), plan_id, day, exercise_name, sets, reps, rest_sec, notes |

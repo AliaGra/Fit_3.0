@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
   arm          numeric,
   instagram    text,
   calendar_id  text,
+  experience_start_date timestamptz,
   PRIMARY KEY (chat_id)
 );
 
