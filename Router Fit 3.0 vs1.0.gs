@@ -319,9 +319,16 @@ function handleCallback_(chatId, callbackData, callbackQueryId, messageId) {
   }
 
   if (action.indexOf('SCH_') === 0) {
+    try {
+      Logger.log('Router: SCH_ action=' + action + ' chatId=' + chatId);
+      if (typeof Helpers !== 'undefined' && typeof Helpers.logToSheets === 'function') {
+        Helpers.logToSheets(CONSTANTS.LOG_LEVELS.INFO, 'Router.handleCallback', 'SCH_ action=' + action);
+      }
+    } catch (eLog) {}
     if (typeof Schedule !== 'undefined' && typeof Schedule.handleCallback === 'function') {
       Schedule.handleCallback(chatId, action, params);
     } else {
+      Logger.log('Router: Schedule or handleCallback missing, fallback to Menu');
       State.clear(chatId);
       Menu.show(chatId);
     }

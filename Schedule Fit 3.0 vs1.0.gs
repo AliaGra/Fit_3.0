@@ -121,7 +121,19 @@ function handleScheduleCallback_(chatId, action, params) {
 
   // ─── Учень: мій розклад ───
   if (action === C.SCH_S_MY_SCHEDULE) {
-    showStudentMySchedule_(chatId);
+    try {
+      Logger.log('Schedule: SCH_S_MY_SCHEDULE chatId=' + chatId);
+      showStudentMySchedule_(chatId);
+    } catch (err) {
+      Logger.log('Schedule.showStudentMySchedule_ error: ' + (err && err.message));
+      try {
+        if (typeof Helpers !== 'undefined' && typeof Helpers.logToSheets === 'function') {
+          Helpers.logToSheets(CONSTANTS.LOG_LEVELS.ERROR, 'Schedule.showStudentMySchedule_', (err && err.message) || 'unknown');
+        }
+      } catch (e2) {}
+      Helpers.safeSend(chatId, '❌ Не вдалося завантажити розклад. Спробуй /start або пізніше.');
+      Menu.show(chatId);
+    }
     return;
   }
 
@@ -533,21 +545,31 @@ function studentDeclineSlot_(chatId, slotId) {
 }
 
 function showStudentMySchedule_(chatId) {
-  var myBookings = Sheets.getSlotsByStudentAndStatus(chatId, null);
+  chatId = String(chatId || '');
+  var myBookings;
+  try {
+    myBookings = (typeof Sheets !== 'undefined' && Sheets.getSlotsByStudentAndStatus)
+      ? Sheets.getSlotsByStudentAndStatus(chatId, null)
+      : [];
+  } catch (e) {
+    Logger.log('Schedule.showStudentMySchedule_ getSlots error: ' + (e && e.message));
+    myBookings = [];
+  }
+  if (!Array.isArray(myBookings)) myBookings = [];
   var bookedOrRequested = [];
   var i;
-  for (i = 0; i < (myBookings || []).length; i++) {
-    if (myBookings[i].status === CONSTANTS.SCHEDULE_STATUS.BOOKED ||
-        myBookings[i].status === CONSTANTS.SCHEDULE_STATUS.REQUESTED) {
-      bookedOrRequested.push(myBookings[i]);
+  for (i = 0; i < myBookings.length; i++) {
+    var slot = myBookings[i];
+    if (slot && (slot.status === CONSTANTS.SCHEDULE_STATUS.BOOKED || slot.status === CONSTANTS.SCHEDULE_STATUS.REQUESTED)) {
+      bookedOrRequested.push(slot);
     }
   }
   if (bookedOrRequested.length === 0) {
-    Helpers.safeSend(chatId, '📅 У тебе немає активних записів.');
+    Helpers.safeSend(chatId, '📅 У тебе немає активних записів. Якщо тренер щойно записав тебе — натисни «Мій розклад» ще раз або /start.');
     Menu.show(chatId);
     return;
   }
-  Helpers.sendKeyboard(chatId, '📅 **Мої записи:**', [[{ text: '🔙 Назад', callback_data: CONSTANTS.CALLBACKS.BACK_TO_MAIN }]], { parse_mode: 'Markdown' });
+  Helpers.sendKeyboard(chatId, '📅 Мої записи:', [[{ text: '🔙 Назад', callback_data: CONSTANTS.CALLBACKS.BACK_TO_MAIN }]]);
   for (i = 0; i < bookedOrRequested.length; i++) {
     sendStudentSlotCard_(chatId, bookedOrRequested[i], i + 1);
   }
