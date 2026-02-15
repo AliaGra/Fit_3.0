@@ -17,7 +17,7 @@
 | 3 | **Мої учні** | ✅ Реалізовано | Список учнів, профіль учня, **Додати учня** (ім'я+прізвище → createStudentByInvite, показ коду). **Записати** — інтегровано з розкладом (оберіть слот). Історія / Почати тренування — заглушки |
 | 4 | **Тренування учнів** | 🟡 Заглушка | Кнопка веде на повідомлення «модуль переноситься»; вибір учня та лог тренувань — далі |
 | 5 | **Інвайт-код («У мене є код»)** | ✅ Реалізовано | Учень вводить код → activateInvite (user_id/chat_id INVITE_XXX → real ChatID), потім головне меню |
-| 6 | **Бібліотека вправ** | 🟡 Структура готова | Таблиця в Supabase: group_level1/2/3, name_ua, name_ru. Експорт з Sheets → імпорт. Дані в Supabase. Показ у боті (ієрархія Верх/Низ/Прес, пошук UA/RU) — далі |
+| 6 | **Бібліотека вправ** | ✅ Реалізовано | Таблиця в Supabase: group_level1/2/3, name_ua, name_ru, vid, difficulty. Ієрархія Верх/Низ/Кор/Кардіо → групи → підкатегорії. Експорт з Sheets → імпорт |
 | 7 | **Профіль (перегляд/редагування, заміри)** | ✅ Реалізовано | Перегляд, «Оновити заміри» (вага → талія → стегно → ягодиці → рука), «Редагувати дані» (ім'я, прізвище, місто, зріст, дата народження), історія замірів у measurements_history |
 | 8 | **Розклад тренувань** | ✅ Реалізовано | Тренер: налаштування шаблону (дні відпочинку, тривалість, робочий день), створення слотів (авто на 7–30 днів), Мій розклад з позначкою «Вільний», підтвердити/відхилити/завершити, записати учня, скасування та перенос (запит учню). Учень: записатись, Мій розклад, скасування та перенос (запит тренеру). 4.4.1–4.4.7 — реалізовано |
 | 9 | **Історія тренувань** | 🟡 Заглушка | Повідомлення «ще в розробці» |
@@ -1537,116 +1537,63 @@ function calculateProgress(history) {
 
 ## 6. БІБЛІОТЕКА ВПРАВ
 
-### 6.1 Таблиця ExerciseLibrary
+### 6.1 Таблиця ExerciseLibrary (Supabase: exercise_library)
 
-**Структура (A-L, 12 колонок):**
+**Структура (A–P, 16 колонок):**
 
 | Колонка | EN Header | Опис |
 |---------|-----------|------|
 | **A** | ID | Унікальний ID вправи |
-| **B** | GroupName | Група м'язів (для кнопок) |
-| **C** | ExerciseName | Назва вправи |
-| **D** | Equipment | Обладнання |
-| **E** | Active | YES/NO - активність |
-| **F** | Comment | Коментар тренера |
-| **G** | FocusPoint | Ключовий фокус |
-| **H** | CommonMistakes | Звичайні помилки |
-| **I** | ProperFeeling | Що відчувати |
-| **J** | StaticHolds | Особливості статики |
-| **K** | YouTubeLink | Посилання на відео |
-| **L** | MyChannelLink | Власне відео |
+| **B** | group_level1 | 1-й рівень: Верх, Низ, Кор, Кардіо |
+| **C** | group_level2 | 2-й рівень: Спина, Груди, Ноги, Плечі, Руки, Сідниці, Прес |
+| **D** | group_level3 | 3-й рівень: Широчайші, Комплексні, Передня дельта тощо |
+| **E** | name_ua | Назва UA |
+| **F** | name_ru | Назва RU |
+| **G** | equipment | Обладнання |
+| **H** | active | YES/NO — активність |
+| **I** | vid | Вид: базова, изоляция, стабилизация, растяжка |
+| **J** | difficulty | Складність: высокая, средняя, низкая |
+| **K** | focus_point | Ключовий фокус |
+| **L** | common_mistakes | Звичайні помилки |
+| **M** | proper_feeling | Що відчувати |
+| **N** | static_holds | Особливості статики |
+| **O** | youtube_link | Посилання на відео |
+| **P** | my_channel_link | Власне відео |
 
 ---
 
-### 6.2 Використання в Training.gs
+### 6.2 Ієрархія в боті (lib/training.js, lib/supabase.js)
 
-**Показ груп м'язів:**
+**1-й рівень (TOP_LEVEL_GROUPS):** Верх, Низ, Кор, Кардіо
+
+**2-й рівень (GROUPS_BY_TOP):**
+- Верх: Спина, Груди, Плечі, Руки
+- Низ: Ноги, Сідниці
+- Кор: Прес
+- Кардіо: (порожній — вправи без підгруп)
+
+**3-й рівень:** з БД (getSubgroups) — підкатегорії за group_level3
+
+**Показ вправ:**
 ```javascript
-// Унікальні групи з ExerciseLibrary
-const groups = Sheets.getExerciseGroups();
-// Повертає: ["Груди", "Спина", "Ноги", ...]
-
-// UI:
-groups.forEach(group => {
-  buttons.push({
-    text: group,
-    callback_data: `TRAIN_GROUP:${group}`
-  });
-});
+// supabase.getExercisesByGroup(groupLevel1, groupLevel2, groupLevel3)
+// group_level1 = Верх/Низ/Кор/Кардіо
+// group_level2 = Спина/Ноги/...
+// group_level3 = Широчайші/Комплексні/... (опційно)
 ```
 
-**Показ вправ групи:**
-```javascript
-const exercises = Sheets.getExercisesByGroup("Груди");
-// Фільтрація: GroupName = "Груди" AND Active = "YES"
-
-// UI:
-exercises.forEach(ex => {
-  buttons.push({
-    text: ex.exerciseName,
-    callback_data: `TRAIN_EXERCISE:${ex.id}`
-  });
-});
-```
-
-**Пошук вправи по назві (додаткова опція):**
-```javascript
-// UI: кнопка "🔎 Ввести назву"
-// FSM: step = 'training_search_name_input'
-// Валідація: мінімум 3 літери
-const query = input.toLowerCase();
-const prefix = query.slice(0, 3);
-
-const exercises = Sheets.getAllExercises();
-const startsWith = exercises.filter(ex => ex.exerciseName.toLowerCase().startsWith(prefix));
-const contains = exercises.filter(ex => ex.exerciseName.toLowerCase().includes(query));
-
-// Об'єднати з пріоритетом startsWith і прибрати дублікати
-const results = mergeUnique(startsWith, contains);
-```
-
-**Правила пошуку:**
-- пошук стартує з перших 3 літер
-- також шукаємо входження введеного слова в будь-якій частині назви
+**Пошук вправи по назві:**
+- Кнопка «🔎 Ввести назву», FSM: `training_search_name_input`
+- `supabase.searchExercises(query)` — пошук по name_ua / name_ru (ilike)
 
 **Coach доступ до деталей:**
-```javascript
-const exercise = Sheets.getExerciseById(5);
-
-const details = `
-📋 **${exercise.exerciseName}**
-
-🎯 Фокус: ${exercise.focusPoint}
-⚠️ Помилки: ${exercise.commonMistakes}
-✅ Відчуття: ${exercise.properFeeling}
-
-${exercise.youtubeLink ? '🎥 Відео: ' + exercise.youtubeLink : ''}
-`;
-```
+- `supabase.getExerciseById(id)` — name, focus_point, common_mistakes, proper_feeling, youtube_link
 
 ---
 
 ### 6.3 Фільтрація по Active
 
-**Критично:** Показувати ТІЛЬКИ вправи де `Active = "YES"`
-
-```javascript
-function getActiveExercises() {
-  const sheet = SpreadsheetApp.openById(CONSTANTS.SPREADSHEET_ID)
-    .getSheetByName('ExerciseLibrary');
-  
-  const data = sheet.getRange('A3:L').getValues();
-  
-  return data
-    .filter(row => row[4] === 'YES') // Колонка E
-    .map(row => ({
-      id: row[0],
-      groupName: row[1],
-      exerciseName: row[2],
-      // ... всі поля
-    }));
-}
-```
+**Критично:** Показувати ТІЛЬКИ вправи де `active = "YES"` (або null для сумісності). Реалізовано в `supabase.activeFilter(q)`.
 
 ====================================================================================================
 
