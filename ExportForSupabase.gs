@@ -1,9 +1,9 @@
 /**
- * FIT 3.0 — експорт таблиць з Google Sheets у JSON для імпорту в Supabase.
- * ExerciseLibrary: нова структура (group_level1/2/3, name_ua, name_ru).
+ * FIT 3.0 — експорт ЛИШЕ бібліотеки вправ (лист ExerciseLibrary) у JSON для Supabase.
+ * Інші листи (Users, Schedule тощо) не використовуються — можна їх видалити з документу.
  *
- * Script Properties: SPREADSHEET_ID
- * Функції: runExportToDrive, runExportExerciseLibraryOnly
+ * Script Properties: SPREADSHEET_ID (ID вашої таблиці з листом ExerciseLibrary)
+ * Запуск: виконати runExportToDrive — у корені Drive зʼявиться папка FIT_Export_дата з exercise_library.json
  */
 
 var SHEET_EXERCISE_LIBRARY = 'ExerciseLibrary';
@@ -16,14 +16,20 @@ var COLS = {
   NAME_RU: 5,
   EQUIPMENT: 6,
   ACTIVE: 7,
-  VID: 8,          // I — вид: базова, изоляция, стабилизация, растяжка
-  DIFFICULTY: 9,   // J — сложность: высокая, средняя, низкая
+  VID: 8,          // I — вид
+  DIFFICULTY: 9,   // J — сложность
   FOCUS_POINT: 10,
   COMMON_MISTAKES: 11,
   PROPER_FEELING: 12,
   STATIC_HOLDS: 13,
   YOUTUBE_LINK: 14,
-  MY_CHANNEL_LINK: 15
+  MY_CHANNEL_LINK: 15,
+  MEDICAL_CONTRAINDICATIONS: 16,  // Q
+  MEDICAL_LIMITATIONS: 17,        // R
+  SAFE_FOR: 18,                   // S
+  MODIFICATIONS: 19,               // T
+  ALTERNATIVES: 20,               // U
+  SAFETY_NOTES: 21                // V
 };
 
 function getSpreadsheetId() {
@@ -44,7 +50,8 @@ function exportExerciseLibrary() {
   if (lastRow < 3) {
     return [];
   }
-  var data = sheet.getRange(3, 1, lastRow, 16).getValues();
+  var numCols = 22;
+  var data = sheet.getRange(3, 1, lastRow, numCols).getValues();
   var result = [];
   for (var i = 0; i < data.length; i++) {
     var row = data[i];
@@ -52,7 +59,7 @@ function exportExerciseLibrary() {
     if (!idRaw) continue;
     var idNum = parseInt(String(idRaw).replace(/\D/g, ''), 10);
     if (isNaN(idNum) || idNum <= 0) continue;
-    result.push({
+    var obj = {
       id: idNum,
       group_level1: String(row[COLS.GROUP_LEVEL1] || '').trim(),
       group_level2: String(row[COLS.GROUP_LEVEL2] || '').trim(),
@@ -69,7 +76,14 @@ function exportExerciseLibrary() {
       static_holds: String(row[COLS.STATIC_HOLDS] || '').trim(),
       youtube_link: String(row[COLS.YOUTUBE_LINK] || '').trim(),
       my_channel_link: String(row[COLS.MY_CHANNEL_LINK] || '').trim()
-    });
+    };
+    if (row.length > COLS.MEDICAL_CONTRAINDICATIONS) obj.medical_contraindications = String(row[COLS.MEDICAL_CONTRAINDICATIONS] || '').trim();
+    if (row.length > COLS.MEDICAL_LIMITATIONS) obj.medical_limitations = String(row[COLS.MEDICAL_LIMITATIONS] || '').trim();
+    if (row.length > COLS.SAFE_FOR) obj.safe_for = String(row[COLS.SAFE_FOR] || '').trim();
+    if (row.length > COLS.MODIFICATIONS) obj.modifications = String(row[COLS.MODIFICATIONS] || '').trim();
+    if (row.length > COLS.ALTERNATIVES) obj.alternatives = String(row[COLS.ALTERNATIVES] || '').trim();
+    if (row.length > COLS.SAFETY_NOTES) obj.safety_notes = String(row[COLS.SAFETY_NOTES] || '').trim();
+    result.push(obj);
   }
   return result;
 }

@@ -8,6 +8,8 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | ID | group_level1 | group_level2 | group_level3 | name_ua | name_ru | equipment | active | vid | difficulty | focus_point | common_mistakes | proper_feeling | static_holds | youtube_link | my_channel_link |
 
+Колонки Q–V (медицина та безпека): medical_contraindications (абсолютні заборони), medical_limitations (обмеження з примітками), safe_for (безпечно при цих станах), modifications (як модифікувати), alternatives (альтернативні вправи), safety_notes (загальні примітки безпеки). Додати через міграцію **supabase_migration_exercise_library_medical_safety.sql**.
+
 **I vid:** базова, изоляция, стабилизация, растяжка  
 **J difficulty:** высокая, средняя, низкая
 
@@ -37,12 +39,19 @@ ID: N001, N002… (експортується як 1, 2, 3…).
 
 ## Крок 4. Імпорт у Supabase
 
+Звичайний імпорт (усі таблиці):
 ```powershell
 cd "d:\Fit 3.0 vs2.0"
 $env:SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"
 $env:SUPABASE_ANON_KEY = "your_anon_key"
 node import-to-supabase.mjs "C:\шлях\до\папки_FIT_Export_..."
 ```
+
+**Перезалити тільки exercise_library з Google** (таблицю спочатку очистити, потім залити знову):
+```powershell
+node import-to-supabase.mjs "C:\шлях\до\папки_FIT_Export_YYYY-MM-DD_HH-mm" exercise_library --replace
+```
+Після цього в таблиці будуть лише дані з поточного експорту (усі 107 вправ, якщо вони є в JSON).
 
 ---
 

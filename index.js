@@ -1,6 +1,7 @@
 /**
  * Точка входу: HTTP-сервер + webhook для Telegram (FIT 3.0 Node)
  */
+require('dotenv').config();
 const http = require('http');
 const PORT = process.env.PORT || 3000;
 
