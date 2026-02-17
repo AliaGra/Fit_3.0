@@ -1,7 +1,7 @@
 # FIT 3.0 — правила розробки (Node.js)
 
-**Версія:** 3.0  
-**Дата:** 12.02.2026  
+**Версія:** 3.1  
+**Дата:** 15.02.2026  
 **Стек:** Node.js, Supabase, Telegram Bot API, Railway
 
 ---
@@ -11,8 +11,10 @@
 FIT 3.0 — Telegram-бот для тренерів та атлетів:
 - Реєстрація, профіль, заміри
 - Розклад тренувань (без Google Calendar)
-- Мої учні, інвайт-коди
-- Звіти тренера
+- Мої учні, інвайт-коди, вартість тренувань
+- Тренування: тренер — «Моє тренування» (SELF), «Тренування учнів» (вибір учнів за прізвищем, тип Персональна/Спліт/Тріо; при завершенні — price_charged → звіт доходів)
+- Бібліотека вправ (картка з розшифровкою медичних кодів MC → повні назви + ступінь)
+- Звіти тренера (кількість тренувань, сума доходів)
 
 **Архітектура:**
 - **Бот:** Node.js (`index.js` + `lib/`) — **єдиний робочий runtime**. Вся логіка маршрутизації, розкладу, профілю, звітів — у `lib/`.
@@ -29,19 +31,22 @@ FIT 3.0 — Telegram-бот для тренерів та атлетів:
 d:\Fit 3.0 vs2.0\
 ├── index.js          # Точка входу, HTTP + webhook
 ├── lib/
-│   ├── router.js     # Маршрутизація update
-│   ├── constants.js  # Enum, константи
-│   ├── state.js      # FSM State (Supabase bot_state)
-│   ├── helpers.js    # safeSend, sendKeyboard
-│   ├── telegram.js   # API Telegram
-│   ├── supabase.js   # Доступ до Supabase
-│   ├── user.js       # Користувачі
+│   ├── router.js       # Маршрутизація update
+│   ├── constants.js    # Enum, константи
+│   ├── state.js        # FSM State (Supabase bot_state)
+│   ├── helpers.js      # safeSend, sendKeyboard
+│   ├── telegram.js     # API Telegram
+│   ├── supabase.js     # Доступ до Supabase
+│   ├── user.js         # Користувачі
 │   ├── registration.js
 │   ├── menu.js
 │   ├── profile.js
 │   ├── coach.js
 │   ├── schedule.js
-│   └── reports.js
+│   ├── training.js     # Тренування: SELF (тренер), COACH (учні); групи→вправи→вага/повтори; finishWorkout → price_charged
+│   ├── library.js      # Бібліотека вправ (групи, пошук, картка); використовує medicalDecode для медичних полів
+│   ├── medicalDecode.js # Розшифровка MC-кодів та severity для картки вправи (decodeMedicalText)
+│   └── reports.js      # Звіти тренера (кількість тренувань, сума доходів)
 ├── Supabase_створення_таблиць_FIT3.sql   # Еталон схеми БД
 └── Бізнес-логіка_Gym_3_0_v1.1.md         # Бізнес-правила, VETO, FSM
 ```
@@ -56,6 +61,7 @@ d:\Fit 3.0 vs2.0\
 |----|-----|
 | Структура БД | `Supabase_створення_таблиць_FIT3.sql` |
 | Бізнес-правила, VETO, callback_data, архітектура | `Бізнес-логіка_Gym_3_0_v1.1.md` |
+| Логіка планів тренувань (медичний профіль, генерація плану, filterExerciseForUser) | `Логіка складання плану тренувань.md` |
 | Правила для Cursor (цей файл) | `.cursorrules` |
 
 **Файли `*.gs`** у репозиторії — це Google Apps Script: використовуються лише для бібліотеки вправ (лист + експорт у Supabase). Зміни логіки бота (меню, розклад, повідомлення) роби в **`lib/`** (Node), не в GAS.
