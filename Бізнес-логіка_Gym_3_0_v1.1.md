@@ -30,7 +30,9 @@
 
 **Реалізовано (перший етап планів тренувань):** SQL-міграція user_medical_conditions (11.1), ALTER users — training_days_per_week, active_plan_id (11.4); lib/medicalFilter.js — filterExerciseForUser() (BLOCKED/ALLOWED_WITH_MOD/SAFE/NEUTRAL), парсинг medical_contraindications, medical_limitations, safe_for; інтеграція в картку вправи (lib/library.js): підказка «Для вашого профілю: рекомендовано / з обмеженнями / протипоказано» за getActiveMedicalConditions + filterExerciseForUser.
 
-**Наступний етап:** medicalProfile.js (CRUD MC); generateTrainingPlan(); виконання плану (training.js). Деталі — у файлі `Логіка складання плану тренувань.md`.
+**Реалізовано (етап 2):** medicalProfile.js — CRUD медичних станів: тренер у картці учня відкриває «🩺 Медичний профіль», переглядає список MC-станів, додає (введення коду MC001–MC025 → вибір severity: mild/moderate/severe, stage1/2/3, acute/chronic або «Інше»), видаляє (MC_REMOVE:id). Supabase: getMedicalConditionsList, insertMedicalCondition, removeMedicalCondition. FSM: MC_ADD_CODE, MC_ADD_SEVERITY, MC_ADD_SEVERITY_CUSTOM, MC_PROFILE_VIEW.
+
+**Наступний етап:** generateTrainingPlan(); training_plans (11.2), training_plan_exercises (11.3); виконання плану (training.js). Деталі — у файлі `Логіка складання плану тренувань.md`.
 
 Після змін у коді оновлюй цю таблицю.
 
