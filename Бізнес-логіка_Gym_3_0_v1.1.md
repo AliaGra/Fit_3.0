@@ -32,7 +32,9 @@
 
 **Реалізовано (етап 2):** medicalProfile.js — CRUD медичних станів: тренер у картці учня відкриває «🩺 Медичний профіль», переглядає список MC-станів, додає (введення коду MC001–MC025 → вибір severity: mild/moderate/severe, stage1/2/3, acute/chronic або «Інше»), видаляє (MC_REMOVE:id). Supabase: getMedicalConditionsList, insertMedicalCondition, removeMedicalCondition. FSM: MC_ADD_CODE, MC_ADD_SEVERITY, MC_ADD_SEVERITY_CUSTOM, MC_PROFILE_VIEW.
 
-**Наступний етап:** generateTrainingPlan(); training_plans (11.2), training_plan_exercises (11.3); виконання плану (training.js). Деталі — у файлі `Логіка складання плану тренувань.md`.
+**Реалізовано (етап 3 — генерація плану):** SQL-міграція training_plans (uuid), training_plan_exercises (11.2, 11.3). Supabase: getExercisesForPlanByGroupLevel2, insertTrainingPlan, insertTrainingPlanExercise, getPlansByStudent, setPlanActiveForStudent, getPlanWithExercises, deleteTrainingPlan. lib/planGenerator.js: generateTrainingPlan() — рівень за experience_days, split за level+days_per_week, підбір вправ з filterExerciseForUser (BLOCKED виключено, SAFE пріоритет), sets/reps/rest за goal+level. lib/trainingPlan.js: тренер у картці учня — «Програма тренувань» → список планів, «Новий план» → «Авто-підбір» → summary → «Генерувати» → перегляд плану, Активувати/Видалити.
+
+**Наступний етап:** виконання плану учнем (training.js — вибір дня плану, вправи з sets/reps); ручне створення плану (вручну по днях). Деталі — у файлі `Логіка складання плану тренувань.md`.
 
 Після змін у коді оновлюй цю таблицю.
 
