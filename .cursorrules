@@ -51,6 +51,10 @@ d:\Fit 3.0 vs2.0\
 │   ├── planGenerator.js  # Генерація плану: generateTrainingPlan (рівень, спліт, вправи, sets/reps)
 │   ├── trainingPlan.js   # UI тренера: Програма тренувань → список, Новий план, Авто-підбір, перегляд, Активувати/Видалити
 │   ├── planRevisionReminders.js # Нагадування тренеру про ревізію плану (cron /cron/plan-revision)
+│   ├── ai/
+│   │   ├── aiClient.js   # OpenAI клієнт, isEnabled, chatCompletion, safeCall
+│   │   ├── aiValidator.js# Валідація plan comments, reminder, failure_analysis
+│   │   └── aiPrompts.js   # SYSTEM_PROMPTS, buildPlanCommentsPrompt, buildReminderPrompt, buildFailureAnalysisPrompt
 │   └── reports.js      # Звіти тренера (кількість тренувань, сума доходів)
 ├── Supabase_створення_таблиць_FIT3.sql   # Еталон схеми БД
 └── Бізнес-логіка_Gym_3_0_v1.1.md         # Бізнес-правила, VETO, FSM
@@ -114,6 +118,7 @@ git push
 **Змінні середовища (Railway):** У проєкті Railway у Variables вже є `BOT_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`. Опційно:
 - `REMINDER_CRON_SECRET` — секрет для `/cron/reminders` та `/cron/plan-revision` (нагадування учням + нагадування тренеру про ревізію плану)
 - `REMINDER_HOURS_BEFORE` — за скільки годин до тренування нагадувати (за замовч. 2)
+- **AI (Частина 1):** `OPENAI_API_KEY` — ключ OpenAI; `AI_ENABLED` — `true` щоб увімкнути виклики AI; `AI_MODEL` — за замовч. `gpt-4o-mini`; `AI_MAX_TOKENS` — за замовч. 600; `AI_TIMEOUT_MS` — за замовч. 10000. Таблиця `ai_generated_content` у Supabase (міграція `supabase_migration_ai_content.sql`).
 
 ---
 
