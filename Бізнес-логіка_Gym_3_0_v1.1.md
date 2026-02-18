@@ -26,15 +26,19 @@
 | 10 | **Звіти тренера** | ✅ Реалізовано | **Кількість тренувань** — період 1–365 днів, по учнях, середнє/день. **Сума доходів** — період 1–365 днів, сума price_charged (слоти COMPLETED), розбивка по учнях і по валютах. Джерело: слоти з календаря (підтвердження присутності) та **слоти з «Тренування учнів»** (при [Завершити тренування] виставляється price_charged з Pricing та COMPLETED). |
 | 11 | **Вартість тренувань (Pricing)** | ✅ Реалізовано | Мої учні → «💰 Вартість тренувань» (тариф за замовчуванням / індивідуально для учня), профіль учня → вартість + тип за замовчуванням; при COMPLETED записується PriceCharged (з 1/2/3 за типом). Звіт «Сумма доходів» — реалізовано (Звіти → Сума доходів) |
 | 12 | **Самостійне тренування (тренер)** | ✅ Реалізовано | Тренер: Тренування → **«Моє тренування»** → групи м'язів → вправи → вага/повтори; записи в bot_training_data з ChatID тренера (mode SELF). Слоти розкладу не створюються. |
-| 13 | **Почати тренування (учень)** | ❌ Не реалізовано | Заглушка |
+| 13 | **Почати тренування (учень)** | ✅ Реалізовано | Учень: «Моє тренування» → перевірка активного плану → вибір дня → вправи з sets/reps/rest, ввід ваги/повторів → запис у bot_training_data; кнопки «Завершити вправу» / «Завершити тренування». lib/training.js: startStudentPlanWorkout, STUDENT_PLAN_DAY, TRAINING_STUDENT_PLAN_INPUT. |
 
-**Реалізовано (перший етап планів тренувань):** SQL-міграція user_medical_conditions (11.1), ALTER users — training_days_per_week, active_plan_id (11.4); lib/medicalFilter.js — filterExerciseForUser() (BLOCKED/ALLOWED_WITH_MOD/SAFE/NEUTRAL), парсинг medical_contraindications, medical_limitations, safe_for; інтеграція в картку вправи (lib/library.js): підказка «Для вашого профілю: рекомендовано / з обмеженнями / протипоказано» за getActiveMedicalConditions + filterExerciseForUser.
+**Реалізовано (логіка планів — документ «Логіка складання плану тренувань.md»):**
 
-**Реалізовано (етап 2):** medicalProfile.js — CRUD медичних станів: тренер у картці учня відкриває «🩺 Медичний профіль», переглядає список MC-станів, додає (введення коду MC001–MC025 → вибір severity: mild/moderate/severe, stage1/2/3, acute/chronic або «Інше»), видаляє (MC_REMOVE:id). Supabase: getMedicalConditionsList, insertMedicalCondition, removeMedicalCondition. FSM: MC_ADD_CODE, MC_ADD_SEVERITY, MC_ADD_SEVERITY_CUSTOM, MC_PROFILE_VIEW.
+- **Етап 1:** SQL user_medical_conditions (11.1), users: training_days_per_week, active_plan_id (11.4). lib/medicalFilter.js — filterExerciseForUser() (BLOCKED/ALLOWED_WITH_MOD/SAFE/NEUTRAL). Картка вправи (library.js): підказка за профілем.
+- **Етап 2:** medicalProfile.js — CRUD медичних станів; категорії захворювань → вибір стану → severity. Supabase: getMedicalConditionsList, insertMedicalCondition, removeMedicalCondition.
+- **Етап 3:** SQL training_plans (uuid), training_plan_exercises (11.2, 11.3). planGenerator.js: generateTrainingPlan(). trainingPlan.js: «Програма тренувань» → список → «Новий план» → «Авто-підбір» → генерація → Активувати/Видалити.
+- **Етап 4:** Учень виконує план (training.js): startStudentPlanWorkout, вибір дня, вправи, ввід ваги/повторів, insertTrainingData.
+- **Етап 5:** Автопрогресія та деавтоматизація (розд. 9.1): після тренування — перевірка виконання; при виконанні мінімуму — +2.5/1.25 кг (target_weight); при двох невиконаннях поспіль — −10% ваги + сповіщення тренеру. getTrainingDataByChatAndDate, updatePlanExerciseTargetWeight.
+- **Архів учнів:** users.is_archived; «Мої учні» — без архівованих; кнопка «Архівувати профіль» у картці учня; меню «Архів учнів» → Активувати профіль / Видалити профіль. getArchivedStudentsByCoachId.
+- **Ревізія плану (9.1):** при активації плану valid_until = now + 6 тижнів; cron GET /cron/plan-revision — нагадування тренеру «Час оновити план для [Ім'я]». training_plans.revision_reminder_sent_at, getPlansDueForRevision, planRevisionReminders.js.
 
-**Реалізовано (етап 3 — генерація плану):** SQL-міграція training_plans (uuid), training_plan_exercises (11.2, 11.3). Supabase: getExercisesForPlanByGroupLevel2, insertTrainingPlan, insertTrainingPlanExercise, getPlansByStudent, setPlanActiveForStudent, getPlanWithExercises, deleteTrainingPlan. lib/planGenerator.js: generateTrainingPlan() — рівень за experience_days, split за level+days_per_week, підбір вправ з filterExerciseForUser (BLOCKED виключено, SAFE пріоритет), sets/reps/rest за goal+level. lib/trainingPlan.js: тренер у картці учня — «Програма тренувань» → список планів, «Новий план» → «Авто-підбір» → summary → «Генерувати» → перегляд плану, Активувати/Видалити.
-
-**Наступний етап:** виконання плану учнем (training.js — вибір дня плану, вправи з sets/reps); ручне створення плану (вручну по днях). Деталі — у файлі `Логіка складання плану тренувань.md`.
+**Наступний етап (опційно):** AI-генерація плану (п. 9 пріоритетів). Деталі — у файлі `Логіка складання плану тренувань.md`.
 
 Після змін у коді оновлюй цю таблицю.
 
@@ -2057,11 +2061,17 @@ function findTrainersByCity(cityName) {
 
 ## 11. ПРОГРАМИ ТРЕНУВАНЬ
 
-### 11.1 Таблиця TrainingPlans
+**Еталон логіки:** повний опис алгоритмів, параметрів профілю, медичної фільтрації, генерації плану, виконання та прогресії — у документі **`Логіка складання плану тренувань для індивідуального користувача`** (файл `Логіка складання плану тренувань.md`). Там же: розд. 4–5 (рівень, спліт, goal, кількість вправ), розд. 7 (алгоритм generateTrainingPlan), розд. 8 (сценарії тренера та учня), розд. 9 (автопрогресія, деавтоматизація, ревізія плану), розд. 11 (SQL-міграції).
 
-**Призначення:** Зберігання програм тренувань створених тренерами
+**Реалізація в Node/Supabase:** таблиці `training_plans` (plan_id uuid, coach_id, student_id, plan_name, goal, level, split_scheme, days_per_week, is_active, valid_until, revision_reminder_sent_at, generation_type) та `training_plan_exercises` (plan_id, exercise_id, exercise_name, day_number, day_label, order_in_day, sets, reps, rest_sec, notes, medical_status, progression_type, target_weight). Модулі: lib/planGenerator.js (generateTrainingPlan), lib/trainingPlan.js (UI тренера: список планів, авто-підбір, перегляд, активувати/видалити), lib/training.js (учень: startStudentPlanWorkout, вибір дня, ввід ваги/повторів, автопрогресія та деавтоматизація), lib/medicalFilter.js (filterExerciseForUser), lib/planRevisionReminders.js + GET /cron/plan-revision. Медичний профіль учня: lib/medicalProfile.js, таблиця user_medical_conditions.
 
-**Структура (A-G, 7 колонок):**
+---
+
+### 11.1 Таблиця TrainingPlans (еталон структури / історична)
+
+**Призначення:** Зберігання програм тренувань створених тренерами. У продакшені використовується Supabase-схема з документу «Логіка складання плану» (див. вище).
+
+**Структура (A-G, 7 колонок) — еталон для звірки:**
 
 | Колонка | EN Header | Опис |
 |---------|-----------|------|

@@ -43,9 +43,14 @@ d:\Fit 3.0 vs2.0\
 │   ├── profile.js
 │   ├── coach.js
 │   ├── schedule.js
-│   ├── training.js     # Тренування: SELF (тренер), COACH (учні); групи→вправи→вага/повтори; finishWorkout → price_charged
-│   ├── library.js      # Бібліотека вправ (групи, пошук, картка); використовує medicalDecode для медичних полів
-│   ├── medicalDecode.js # Розшифровка MC-кодів та severity для картки вправи (decodeMedicalText)
+│   ├── training.js     # Тренування: SELF, COACH; учень — виконання плану (startStudentPlanWorkout, день→вправи→вага/повтори); автопрогресія, деавтоматизація
+│   ├── library.js      # Бібліотека вправ (групи, пошук, картка); medicalDecode + filterExerciseForUser для підказки за профілем
+│   ├── medicalDecode.js# Розшифровка MC-кодів та severity для картки вправи (decodeMedicalText)
+│   ├── medicalFilter.js# filterExerciseForUser (BLOCKED/ALLOWED_WITH_MOD/SAFE/NEUTRAL) для планів та бібліотеки
+│   ├── medicalProfile.js # CRUD медичних станів учня (категорії → стан → severity)
+│   ├── planGenerator.js  # Генерація плану: generateTrainingPlan (рівень, спліт, вправи, sets/reps)
+│   ├── trainingPlan.js   # UI тренера: Програма тренувань → список, Новий план, Авто-підбір, перегляд, Активувати/Видалити
+│   ├── planRevisionReminders.js # Нагадування тренеру про ревізію плану (cron /cron/plan-revision)
 │   └── reports.js      # Звіти тренера (кількість тренувань, сума доходів)
 ├── Supabase_створення_таблиць_FIT3.sql   # Еталон схеми БД
 └── Бізнес-логіка_Gym_3_0_v1.1.md         # Бізнес-правила, VETO, FSM
@@ -63,6 +68,19 @@ d:\Fit 3.0 vs2.0\
 | Бізнес-правила, VETO, callback_data, архітектура | `Бізнес-логіка_Gym_3_0_v1.1.md` |
 | Логіка планів тренувань (медичний профіль, генерація плану, filterExerciseForUser) | `Логіка складання плану тренувань.md` |
 | Правила для Cursor (цей файл) | `.cursorrules` |
+
+### 3.1 Впровадження документу «Логіка складання плану тренувань»
+
+Еталон: **`Логіка складання плану тренувань для індивідуального користувача`** (`Логіка складання плану тренувань.md`). При змінах у планах тренувань, медичному профілі, генерації плану або виконанні плану учнем — звіряйся з цим документом та з розд. 11 Бізнес-логіки.
+
+**Реалізовано в проєкті:**
+- **БД:** user_medical_conditions (11.1); users: training_days_per_week, active_plan_id, is_archived (11.4 + архів); training_plans (uuid), training_plan_exercises; valid_until, revision_reminder_sent_at. Міграції: supabase_migration_*.sql.
+- **Медична фільтрація:** lib/medicalFilter.js — filterExerciseForUser (BLOCKED/ALLOWED_WITH_MOD/SAFE/NEUTRAL). lib/medicalProfile.js — CRUD медичних станів (категорії → стан → severity). lib/library.js — підказка в картці вправи за профілем.
+- **Генерація плану:** lib/planGenerator.js — generateTrainingPlan (рівень, спліт, підбір вправ, sets/reps/rest). lib/trainingPlan.js — «Програма тренувань» → список → «Новий план» → «Авто-підбір» → перегляд, Активувати/Видалити.
+- **Виконання плану учнем:** lib/training.js — startStudentPlanWorkout, вибір дня (STUDENT_PLAN_DAY), вправи та ввід ваги/повторів (TRAINING_STUDENT_PLAN_INPUT), запис у bot_training_data.
+- **Прогресія:** після завершення тренування — автопрогресія (+2.5/1.25 кг при виконанні), деавтоматизація (−10% ваги + сповіщення тренеру при двох невиконаннях поспіль). getTrainingDataByChatAndDate, updatePlanExerciseTargetWeight.
+- **Архів учнів:** coach.js — «Архівувати профіль» у картці учня, меню «Архів учнів», Активувати/Видалити профіль. getStudentsByCoachId (без is_archived), getArchivedStudentsByCoachId.
+- **Ревізія плану:** при активації плану valid_until = now + 6 тижнів. GET /cron/plan-revision — нагадування тренеру. lib/planRevisionReminders.js, getPlansDueForRevision, markPlanRevisionReminderSent.
 
 **Файли `*.gs`** у репозиторії — це Google Apps Script: використовуються лише для бібліотеки вправ (лист + експорт у Supabase). Зміни логіки бота (меню, розклад, повідомлення) роби в **`lib/`** (Node), не в GAS.
 
@@ -94,7 +112,7 @@ git push
 Бот працює на **Railway**. Після `git push` до `main` Railway автоматично перезбирає й перезапускає сервіс — зміни в боті вступають у силу через 1–3 хв.
 
 **Змінні середовища (Railway):** У проєкті Railway у Variables вже є `BOT_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`. Опційно:
-- `REMINDER_CRON_SECRET` — секрет для endpoint `/cron/reminders?secret=XXX`
+- `REMINDER_CRON_SECRET` — секрет для `/cron/reminders` та `/cron/plan-revision` (нагадування учням + нагадування тренеру про ревізію плану)
 - `REMINDER_HOURS_BEFORE` — за скільки годин до тренування нагадувати (за замовч. 2)
 
 ---
