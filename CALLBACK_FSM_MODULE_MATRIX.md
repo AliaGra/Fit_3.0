@@ -1,7 +1,7 @@
 # CALLBACK → FSM STATE → MODULE MATRIX
 
-**Версія:** 1.0  
-**Дата:** 03.02.2026  
+**Версія:** 1.1  
+**Дата:** 17.02.2026  
 **Призначення:** Повна матриця співвідношень callback_data, FSM станів та обробників
 
 ---
@@ -323,6 +323,24 @@ markdown## 📋 ЗМІСТ
 | 67 | `LIBRARY_VIEW` | `null` | Показ груп | `Training.handleCallback()` | Бібліотека вправ |
 | 68 | `LIBRARY_GROUP:{groupId}` | `null` | Показ вправ | `Training.handleCallback()` | Переглянути групу |
 | 69 | `LIBRARY_EXERCISE:{exId}` | `null` | Детальний опис | `Training.handleCallback()` | Детальний опис вправи |
+
+---
+
+## 📘 БЛОК: ПЛАНИ ТРЕНУВАНЬ (TRAINING PLAN MODULE)
+
+**Модуль:** `lib/trainingPlan.js`, `lib/training.js` (тренер: вибір дня плану / вільне тренування)
+
+### Таблиця: Plan + Coach training by plan Callbacks
+
+| № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
+|---|---------------|-------------------|---------------------|----------|-----|
+| 70 | `PLAN_EXERCISE:{exId}` | `plan_add_exercise_day` / `plan_search_input` | Показ вибору типу | `TrainingPlan.handleCallback()` | Обрати вправу для плану (ручне додавання) |
+| 71 | `PLAN_EXERCISE_ADD:{exId}:SET` | Після PLAN_EXERCISE | `plan_add_exercise_day` | `TrainingPlan.handleCallback()` | Тип виконання: кілька підходів (сети) |
+| 72 | `PLAN_EXERCISE_ADD:{exId}:SINGLE` | Після PLAN_EXERCISE | `plan_add_exercise_day` | `TrainingPlan.handleCallback()` | Тип виконання: одиночне |
+| 73 | `COACH_PLAN_DAY:{studentChatId}:{dayNum}` | `coach_train_plan_choice` | `training_student_plan_input` | `Training.handleCallback()` | Тренер обрав день плану для тренування учня |
+| 74 | `COACH_TRAIN_FREE:{studentChatId}` | `coach_train_plan_choice` | `training_group` | `Training.handleCallback()` | Тренер обрав «Вільне тренування» (без плану) |
+
+**Примітка:** Після вибору вправи в ручному плані (PLAN_EXERCISE) показується вибір типу виконання: «Кілька підходів (сети)» або «Одиночне виконання»; відповідно зберігаються sets/reps (з getSetsRepsRest або 1/1).
 
 ---
 
