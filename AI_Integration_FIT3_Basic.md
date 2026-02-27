@@ -1,9 +1,9 @@
 # AI ІНТЕГРАЦІЯ FIT 3.0 — БАЗОВІ ФУНКЦІЇ
 
-**Версія:** 1.0  
-**Дата:** 17.02.2026  
+**Версія:** 1.1  
+**Дата оновлення:** 21.02.2026  
 **Стек:** Node.js, Railway, OpenAI GPT-4o mini  
-**Етап:** Базові функції (місяць 1)
+**Етап:** Базові функції реалізовано (коментарі плану, нагадування, аналіз невиконання)
 
 ---
 
@@ -50,13 +50,15 @@
 ```
 lib/
 ├── ai/
-│   ├── aiClient.js        # OpenAI клієнт + error handling
-│   ├── aiPrompts.js       # Системні промпти для кожної функції
-│   ├── aiFormatter.js     # Форматування даних для AI
-│   └── aiValidator.js     # Валідація AI-відповідей
-├── planGenerator.js       # Доповнити AI-коментарями
-├── training.js            # Доповнити AI-аналізом невиконання
-└── remindersCron.js       # Доповнити AI-персоналізацією
+│   ├── aiClient.js        # OpenAI клієнт + error handling, перевірка AI_ENABLED
+│   ├── aiPrompts.js       # Системні промпти та білдери промптів для кожної функції
+│   ├── aiValidator.js    # Валідація AI-відповідей
+│   ├── planComments.js   # Генерація коментарів тренера до вправ плану
+│   ├── smartReminder.js   # Розумні нагадування
+│   └── failureAnalysis.js # Аналіз невиконання вправ
+├── planGenerator.js      # Інтеграція AI-коментарів при генерації плану
+├── training.js           # AI-аналіз невиконання після завершення тренування
+└── reminders.js          # Нагадування учням (GET /cron/reminders), AI-персоналізація
 ```
 
 ### 2. Нові змінні середовища (Railway)
@@ -226,11 +228,11 @@ function displayPlanDay(planExercises) {
 
 #### Де застосовується
 - **Ендпоінт:** `GET /cron/reminders`
-- **Файл:** `lib/remindersCron.js` (новий або модифікація існуючого)
+- **Файл:** `lib/reminders.js` (виклик `sendReminders()`; персоналізація через `lib/ai/smartReminder.js`)
 
 #### Алгоритм
 ```javascript
-// lib/remindersCron.js - МОДИФІКАЦІЯ
+// lib/reminders.js - sendReminders()
 async function sendTrainingReminders() {
     const upcomingSlots = await supabase.getUpcomingSlots();
     
@@ -638,8 +640,7 @@ GROUP BY student_id;
 ---
 
 **Автор документа:** Claude  
-**Статус:** Готово до впровадження  
-**Наступна ревізія:** після завершення Етапу 1
+**Статус:** Базові функції впроваджені (коментарі плану, нагадування, аналіз невиконання). Детальна інструкція підключення — **Підключення_AI_покроково.md**.
 
 ---
 

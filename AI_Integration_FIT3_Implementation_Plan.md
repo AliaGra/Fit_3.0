@@ -74,7 +74,7 @@
 
 | Крок | Дія | Деталі | Файли |
 |------|-----|--------|--------|
-| 4.1 | Дані для промпту | У reminders.js при обробці слота: отримати student_name (User.getByChatId), опційно останні тренування за 30 днів (bot_training_data або workout_schedule COMPLETED по student_id) — дата, кількість вправ/підходів. Якщо немає готової функції — додати getStudentRecentWorkoutsSummary(chatId, days). | lib/reminders.js, lib/supabase.js |
+| 4.1 | Дані для промпту | У **lib/reminders.js** при обробці слота: отримати student_name (User.getByChatId), опційно останні тренування за 30 днів (bot_training_data або workout_schedule COMPLETED по student_id) — дата, кількість вправ/підходів. Якщо немає готової функції — додати getStudentRecentWorkoutsSummary(chatId, days). | lib/reminders.js, lib/supabase.js |
 | 4.2 | Функція **generateSmartReminder** | Вхід: slot (studentId, date, time, coachId), studentName, recentWorkouts (масив коротких описів). Побудова промпту buildReminderPrompt. Виклик OpenAI (без json_object — вільний текст). Валідація validateReminder (довжина, без посилань). Повертає рядок або null. | lib/ai/ (наприклад aiClient або remindersAI.js) |
 | 4.3 | Інтеграція в **sendReminders** | Для кожного слота: якщо AI_ENABLED — викликати generateSmartReminder; якщо результат не null і валідний — використати його як текст повідомлення; інакше — поточний фіксований текст (formatSlotTime, ім’я тренера). Префікс «Нагадування» або emoji за бажанням додати до обох варіантів. | lib/reminders.js |
 | 4.4 | Лог | Після відправки — insertAIGeneratedContent для content_type 'reminder', entity_id = slot.id. | lib/reminders.js, supabase |
