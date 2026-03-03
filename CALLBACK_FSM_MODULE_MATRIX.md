@@ -334,13 +334,25 @@ markdown## 📋 ЗМІСТ
 
 | № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
 |---|---------------|-------------------|---------------------|----------|-----|
-| 70 | `PLAN_EXERCISE:{exId}` | `plan_add_exercise_day` / `plan_search_input` | Показ вибору типу | `TrainingPlan.handleCallback()` | Обрати вправу для плану (ручне додавання) |
-| 71 | `PLAN_EXERCISE_ADD:{exId}:SET` | Після PLAN_EXERCISE | `plan_add_exercise_day` | `TrainingPlan.handleCallback()` | Тип виконання: кілька підходів (сети) |
-| 72 | `PLAN_EXERCISE_ADD:{exId}:SINGLE` | Після PLAN_EXERCISE | `plan_add_exercise_day` | `TrainingPlan.handleCallback()` | Тип виконання: одиночне |
+| 70 | `PLAN_EXERCISE:{exId}` | `plan_add_exercise_day` / `plan_search_input` | `plan_sets_preset` | `TrainingPlan.handleCallback()` | Обрати вправу для плану (ручне додавання) |
+| 71 | `PLAN_EXERCISE_ADD:{exId}:SET` | Після PLAN_SETS_CUSTOM | `plan_add_exercise_day` | `TrainingPlan.handleCallback()` | Тип виконання: кілька підходів (сети) |
+| 72 | `PLAN_EXERCISE_ADD:{exId}:SINGLE` | Після PLAN_SETS_CUSTOM | `plan_add_exercise_day` | `TrainingPlan.handleCallback()` | Тип виконання: одиночне |
+| 72a | `PLAN_ACC_ST` | Авто-підбір | `plan_accent_select` | `TrainingPlan.handleCallback()` | Почати вибір акцент-зон |
+| 72b | `PLAN_ACC_TGL:{zone}` | `plan_accent_select` | `plan_accent_select` | `TrainingPlan.handleCallback()` | Toggle акцент-зони |
+| 72c | `PLAN_ACC_NXT` | `plan_accent_select` | `plan_avoid_select` | `TrainingPlan.handleCallback()` | Далі до уникнення |
+| 72d | `PLAN_ACC_BCK` | `plan_accent_select` | `plan_set_days` / auto summary | `TrainingPlan.handleCallback()` | Назад |
+| 72e | `PLAN_AVD_TGL:{zone}` | `plan_avoid_select` | `plan_avoid_select` | `TrainingPlan.handleCallback()` | Toggle зони уникнення |
+| 72f | `PLAN_AVD_SKP` / `PLAN_AVD_NXT` | `plan_avoid_select` | `plan_split_preview` | `TrainingPlan.handleCallback()` | Пропустити / Далі |
+| 72g | `PLAN_AVD_BCK` | `plan_avoid_select` | `plan_accent_select` | `TrainingPlan.handleCallback()` | Назад |
+| 72h | `PLAN_SPL_CFM` | `plan_split_preview` | `plan_add_exercise_day` / план | `TrainingPlan.handleCallback()` | Підтвердити розподіл |
+| 72i | `PLAN_SPL_BCK` | `plan_split_preview` | `plan_avoid_select` | `TrainingPlan.handleCallback()` | Змінити акцент |
+| 72j | `PLAN_SETS_PR:{index}` | `plan_sets_preset` | `plan_add_exercise_day` | `TrainingPlan.handleCallback()` | Обрати пресет сетів |
+| 72k | `PLAN_SETS_CU` | `plan_sets_preset` | Вибір SET/SINGLE | `TrainingPlan.handleCallback()` | Ввести вручну |
+| 72l | `PLAN_SETS_BC` | `plan_sets_preset` | `plan_add_exercise_day` | `TrainingPlan.handleCallback()` | Назад до вибору вправи |
 | 73 | `COACH_PLAN_DAY:{studentChatId}:{dayNum}` | `coach_train_plan_choice` | `training_student_plan_input` | `Training.handleCallback()` | Тренер обрав день плану для тренування учня |
 | 74 | `COACH_TRAIN_FREE:{studentChatId}` | `coach_train_plan_choice` | `training_group` | `Training.handleCallback()` | Тренер обрав «Вільне тренування» (без плану) |
 
-**Примітка:** Після вибору вправи в ручному плані (PLAN_EXERCISE) показується вибір типу виконання: «Кілька підходів (сети)» або «Одиночне виконання»; відповідно зберігаються sets/reps (з getSetsRepsRest або 1/1).
+**Примітка:** Після вибору вправи в ручному плані (PLAN_EXERCISE) показується вибір пресетів сетів (SET_PRESETS за goal/level) або «Ввести вручну» → SET/SINGLE. Акцент-зони: авто-план → «→ Далі до акценту» → askAccentZones → askAvoidZones → showSplitPreview → Підтвердити. Ручний план: після PLAN_DAYS → askAccentZones → askAvoidZones → showSplitPreview → створення плану.
 
 ---
 
