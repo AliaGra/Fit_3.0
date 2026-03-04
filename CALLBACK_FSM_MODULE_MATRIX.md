@@ -1,7 +1,7 @@
 # CALLBACK → FSM STATE → MODULE MATRIX
 
-**Версія:** 1.1  
-**Дата:** 17.02.2026  
+**Версія:** 1.2  
+**Дата:** 21.02.2026  
 **Призначення:** Повна матриця співвідношень callback_data, FSM станів та обробників
 
 ---
@@ -326,6 +326,42 @@ markdown## 📋 ЗМІСТ
 
 ---
 
+## 📗 БЛОК: ІСТОРІЯ ТРЕНУВАНЬ (HISTORY MODULE)
+
+**Модуль:** `lib/history.js`. Джерело даних: `bot_training_data`. Три точки входу: учень (Головне меню → «📊 Історія»), тренер своя («📊 Моя історія»), тренер за учня (картка учня → «📊 Історія»).
+
+### Таблиця: History Callbacks
+
+| № | Callback_data | FSM State / контекст | Наступний FSM State | Обробник | Дія |
+|---|---------------|----------------------|---------------------|----------|-----|
+| 75 | `HISTORY_MENU` | `null` (Головне меню) | `hist_menu` | Router → History.showHistoryMenu() | Відкрити меню історії (своя або учня) |
+| 76 | `COACH_HISTORY:{studentChatId}` | `null` (картка учня) | `hist_menu` | Coach.handleCallback() → History.showHistoryMenu() | Історія учня |
+| 77 | `HIST_FILTER:all` | hist_menu | hist_subfilter | History.handleCallback() | Всі тренування → showSubfilterMenu |
+| 78 | `HIST_FILTER:group` | hist_menu | hist_group_select | History.handleCallback() | За групою → showGroupFilter |
+| 79 | `HIST_FILTER:exercise` | hist_menu | hist_group_select | History.handleCallback() | За вправою → showGroupFilter |
+| 80 | `HIST_GROUP:{group_level2}` | hist_group_select | hist_subfilter / hist_ex_select | History.handleCallback() | Вибір групи; далі subfilter або showExerciseFilter |
+| 81 | `HIST_EX:{exerciseId}` | hist_ex_select | hist_subfilter | History.handleCallback() | Вибір вправи → showSubfilterMenu |
+| 82 | `HIST_SUB:prev` | hist_subfilter | hist_detail | History.handleCallback() | Попереднє тренування (1 дата) → showHistoryDetail |
+| 83 | `HIST_SUB:last_n` | hist_subfilter | hist_count_input | History.handleCallback() | Останні N → askHistoryCount |
+| 84 | `HIST_VIEW:{dateStr}` | hist_list | hist_detail | History.handleCallback() | Відкрити деталі тренування за датою |
+| 85 | `HIST_PREV` | hist_detail | hist_detail | History.handleCallback() | Попереднє (старіше) тренування в списку |
+| 86 | `HIST_NEXT` | hist_detail | hist_detail | History.handleCallback() | Наступне (новіше) тренування в списку |
+| 87 | `HIST_BACK_MENU` | будь-який | hist_menu | History.handleCallback() | Назад до меню фільтрів |
+| 88 | `HIST_BACK_SUBFILTER` | hist_list / hist_detail | hist_subfilter | History.handleCallback() | Назад до підфільтрів |
+| 89 | `HIST_BACK_LIST` | hist_detail | hist_list | History.handleCallback() | Назад до списку дат |
+| 90 | `HIST_BACK_GROUP` | hist_ex_select | hist_group_select | History.handleCallback() | Назад до вибору групи |
+| 91 | `HIST_BACK_STUDENT` | hist_menu (coach_student) | — | History.handleCallback() | Назад до картки учня |
+
+### Таблиця: History Text Input States
+
+| № | FSM State | Очікує | Валідація | Наступний State | Обробник |
+|---|-----------|--------|-----------|-----------------|----------|
+| 27 | `hist_count_input` | Число (N) | 1–100 | hist_list | Router handleTextMessage → History.validateHistCount, loadDatesForCurrentFilter, showHistoryList |
+
+**Примітка:** State зберігає histTargetChatId, histOrigin ('self' | 'coach_own' | 'coach_student'), histFilter, histFilterGroup, histFilterExerciseId, histDates, histCurrentIndex, histDetailOrigin. Роутинг: action.startsWith('HIST_') → History.handleCallback; HISTORY_MENU та COACH_HISTORY обробляються в router та coach.js окремо.
+
+---
+
 ## 📘 БЛОК: ПЛАНИ ТРЕНУВАНЬ (TRAINING PLAN MODULE)
 
 **Модуль:** `lib/trainingPlan.js`, `lib/training.js` (тренер: вибір дня плану / вільне тренування)
@@ -352,7 +388,7 @@ markdown## 📋 ЗМІСТ
 | 73 | `COACH_PLAN_DAY:{studentChatId}:{dayNum}` | `coach_train_plan_choice` | `training_student_plan_input` | `Training.handleCallback()` | Тренер обрав день плану для тренування учня |
 | 74 | `COACH_TRAIN_FREE:{studentChatId}` | `coach_train_plan_choice` | `training_group` | `Training.handleCallback()` | Тренер обрав «Вільне тренування» (без плану) |
 
-**Примітка:** Після вибору вправи в ручному плані (PLAN_EXERCISE) показується вибір пресетів сетів (SET_PRESETS за goal/level) або «Ввести вручну» → SET/SINGLE. Акцент-зони: авто-план → «→ Далі до акценту» → askAccentZones → askAvoidZones → showSplitPreview → Підтвердити. Ручний план: після PLAN_DAYS → askAccentZones → askAvoidZones → showSplitPreview → створення плану.
+**Примітка:** Після вибору вправи в ручному плані (PLAN_EXERCISE) показується вибір пресетів сетів (SET_PRESETS за goal/level) або «Ввести вручну» → SET/SINGLE. Акцент-зони: авто-план → «→ Далі до акценту» → askAccentZones → askAvoidZones → showSplitPreview → Підтвердити. Ручний план: після PLAN_DAYS → askAccentZones → askAvoidZones → showSplitPreview → створення плану. У askAvoidZones зони, які вже в акценті (planAccentZones), **не показуються** у клавіатурі (03.2026). Підпис glutes у ACCENT_LABELS — «Ягодиці».
 
 ---
 
@@ -365,20 +401,20 @@ markdown## 📋 ЗМІСТ
 │ Registration               │ 12      │
 │ Profile                    │ 8       │
 │ Training (Start + Groups)  │ 10      │
-│ History                    │ 9       │
-│ Coach-Student + Pricing     │ 14      │  ← +7 Pricing
+│ Coach-Student + Pricing    │ 14      │
 │ Schedule (Coach)           │ 8       │
 │ Schedule (Student)         │ 7       │
 │ Navigation                 │ 5       │
 │ Library                    │ 3       │
+│ Історія тренувань (HIST_*) │ 17      │  ← 03.2026
 ├────────────────────────────┼─────────┤
-│ ВСЬОГО CALLBACKS           │ 76      │
+│ ВСЬОГО CALLBACKS           │ 84      │
 └────────────────────────────┴─────────┘
 
 ┌────────────────────────────┬─────────┐
-│ FSM Text Input States      │ 26      │  ← +3 pricing_*
+│ FSM Text Input States      │ 27      │  ← +1 hist_count_input (03.2026)
 ├────────────────────────────┼─────────┤
-│ ВСЬОГО FSM СТАНІВ          │ 95+     │
+│ ВСЬОГО FSM СТАНІВ          │ 100+    │
 └────────────────────────────┴─────────┘
 ```
 
