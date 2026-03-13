@@ -49,6 +49,28 @@ const server = http.createServer((req, res) => {
       }
       return;
     }
+    if (url.startsWith('/cron/weekly-digest')) {
+      const secret = process.env.REMINDER_CRON_SECRET || '';
+      const qs = url.includes('?') ? url.split('?')[1] : '';
+      const q = qs ? new URLSearchParams(qs) : null;
+      if (!secret || (q && q.get('secret') === secret)) {
+        const WeeklyDigest = require('./lib/weeklyDigest');
+        WeeklyDigest.sendWeeklyDigests()
+          .then((r) => {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ok: true, sent: r.sent }));
+          })
+          .catch((err) => {
+            console.error('cron/weekly-digest', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: err.message }));
+          });
+      } else {
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+        res.end('Forbidden');
+      }
+      return;
+    }
     if (url.startsWith('/cron/plan-revision')) {
       const secret = process.env.REMINDER_CRON_SECRET || process.env.PLAN_REVISION_CRON_SECRET || '';
       const qs = url.includes('?') ? url.split('?')[1] : '';
