@@ -1,0 +1,9 @@
+{
+  "comment": "Копіюйте як equipment-mapping.json і заповніть. Ключ — значення з JSON (частина до коми), значення — equipment_id або null (пропустити).",
+  "EQ_INTER_SHOULDER": "EQ_LATERAL_MACHINE",
+  "EQ_INTER_BUTTERFLY": "EQ_PEC_DECK",
+  "Стіна": "BW",
+  "Турнік або рама з лямками": "EQ_PULLUP_BAR",
+  "Платформа або сходинка": "ACC_STEP",
+  "Inter Atletika Lever Seated Row (важільна горизонтальна тяга)": "EQ_INTER_ROW"
+}

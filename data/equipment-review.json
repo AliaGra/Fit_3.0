@@ -1,0 +1,645 @@
+{
+  "generatedAt": "2026-03-12T16:17:40.532Z",
+  "source": "ExerciseLibrary_v3_medical.xlsx.json",
+  "totalUniqueValues": 84,
+  "equipmentTableIds": [
+    "ACC_BAND",
+    "ACC_FITBALL",
+    "ACC_KETTLEBELL",
+    "ACC_MAT",
+    "ACC_STEP",
+    "BW",
+    "EQ_AB_CRUNCH",
+    "EQ_BARBELL",
+    "EQ_CABLE",
+    "EQ_CALF_SIT",
+    "EQ_CALF_STAND",
+    "EQ_CROSSOVER",
+    "EQ_DIPS_BAR",
+    "EQ_DUMBBELL",
+    "EQ_GRAVITRON",
+    "EQ_HACK_SQUAT",
+    "EQ_HYPEREXT",
+    "EQ_INTER_CHEST",
+    "EQ_INTER_ROW",
+    "EQ_LATERAL_MACHINE",
+    "EQ_LEG_ABDUCTOR",
+    "EQ_LEG_ADDUCTOR",
+    "EQ_LEG_CURL_LIE",
+    "EQ_LEG_CURL_SIT",
+    "EQ_LEG_EXTENSION",
+    "EQ_LEG_PRESS",
+    "EQ_PEC_DECK",
+    "EQ_PULLUP_BAR",
+    "EQ_REAR_DELT_MACHINE",
+    "EQ_SMITH",
+    "EQ_T_BAR"
+  ],
+  "values": [
+    {
+      "full": "BW",
+      "namePart": "BW",
+      "count": 30,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "EQ_DUMBBELL",
+      "namePart": "EQ_DUMBBELL",
+      "count": 19,
+      "format": "id",
+      "suggestedEquipmentId": "EQ_DUMBBELL",
+      "existsInTable": true
+    },
+    {
+      "full": "Килимок",
+      "namePart": "Килимок",
+      "count": 16,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Inter Atletika Lever Seated Row (важільна горизонтальна тяга)",
+      "namePart": "Inter Atletika Lever Seated Row (важільна горизонтальна тяга)",
+      "count": 8,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "EQ_CABLE",
+      "namePart": "EQ_CABLE",
+      "count": 7,
+      "format": "id",
+      "suggestedEquipmentId": "EQ_CABLE",
+      "existsInTable": true
+    },
+    {
+      "full": "ACC_MAT",
+      "namePart": "ACC_MAT",
+      "count": 6,
+      "format": "id",
+      "suggestedEquipmentId": "ACC_MAT",
+      "existsInTable": true
+    },
+    {
+      "full": "EQ_INTER_BUTTERFLY",
+      "namePart": "EQ_INTER_BUTTERFLY",
+      "count": 6,
+      "format": "id",
+      "suggestedEquipmentId": "EQ_INTER_BUTTERFLY",
+      "existsInTable": false,
+      "note": "Відсутній в таблиці equipment"
+    },
+    {
+      "full": "Гантелі",
+      "namePart": "Гантелі",
+      "count": 4,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер для жиму ногами 45°",
+      "namePart": "Тренажер для жиму ногами 45°",
+      "count": 4,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "EQ_BARBELL",
+      "namePart": "EQ_BARBELL",
+      "count": 4,
+      "format": "id",
+      "suggestedEquipmentId": "EQ_BARBELL",
+      "existsInTable": true
+    },
+    {
+      "full": "Гантелі або власна вага",
+      "namePart": "Гантелі або власна вага",
+      "count": 3,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Фітбол",
+      "namePart": "Фітбол",
+      "count": 3,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Штанга",
+      "namePart": "Штанга",
+      "count": 3,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Штанга, стійки",
+      "namePart": "Штанга",
+      "count": 3,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "EQ_INTER_SHOULDER",
+      "namePart": "EQ_INTER_SHOULDER",
+      "count": 3,
+      "format": "id",
+      "suggestedEquipmentId": "EQ_INTER_SHOULDER",
+      "existsInTable": false,
+      "note": "Відсутній в таблиці equipment"
+    },
+    {
+      "full": "Блоковий тренажер, V-рукоять",
+      "namePart": "Блоковий тренажер",
+      "count": 2,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гантелі, горизонтальна лава",
+      "namePart": "Гантелі",
+      "count": 2,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гантелі, лава з вертикальною опорою",
+      "namePart": "Гантелі",
+      "count": 2,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гравітрон",
+      "namePart": "Гравітрон",
+      "count": 2,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Кросовер (нижній блок), манжета",
+      "namePart": "Кросовер (нижній блок)",
+      "count": 2,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер для розгинання ніг",
+      "namePart": "Тренажер для розгинання ніг",
+      "count": 2,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Турнік",
+      "namePart": "Турнік",
+      "count": 2,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Штанга або EZ-гриф",
+      "namePart": "Штанга або EZ-гриф",
+      "count": 2,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Штанга, помост",
+      "namePart": "Штанга",
+      "count": 2,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "ACC_BAND",
+      "namePart": "ACC_BAND",
+      "count": 2,
+      "format": "id",
+      "suggestedEquipmentId": "ACC_BAND",
+      "existsInTable": true
+    },
+    {
+      "full": "ACC_FITBALL",
+      "namePart": "ACC_FITBALL",
+      "count": 2,
+      "format": "id",
+      "suggestedEquipmentId": "ACC_FITBALL",
+      "existsInTable": true
+    },
+    {
+      "full": "Smith machine",
+      "namePart": "Smith machine",
+      "count": 2,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Блоковий тренажер",
+      "namePart": "Блоковий тренажер",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Блоковий тренажер або кросовер, канатна рукоять",
+      "namePart": "Блоковий тренажер або кросовер",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Блоковий тренажер, вузька рукоять",
+      "namePart": "Блоковий тренажер",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Блоковий тренажер, пряма рукоять",
+      "namePart": "Блоковий тренажер",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Блоковий тренажер, рукоять широка",
+      "namePart": "Блоковий тренажер",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Бруси",
+      "namePart": "Бруси",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Власна вага",
+      "namePart": "Власна вага",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гак-тренажер",
+      "namePart": "Гак-тренажер",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гантелі або диск",
+      "namePart": "Гантелі або диск",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гантелі, лава",
+      "namePart": "Гантелі",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гантелі, лава або платформа 30-40см",
+      "namePart": "Гантелі",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гантелі, лава або стоячи",
+      "namePart": "Гантелі",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гантелі, нахилна лава",
+      "namePart": "Гантелі",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гантелі, нахилна лава 30-45°",
+      "namePart": "Гантелі",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гантеля",
+      "namePart": "Гантеля",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гантеля, лава",
+      "namePart": "Гантеля",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гантеля, лава або фітбол",
+      "namePart": "Гантеля",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Гиря",
+      "namePart": "Гиря",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Килимок або лава",
+      "namePart": "Килимок або лава",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Кросовер, D-рукояті",
+      "namePart": "Кросовер",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Кросовер, D-рукоять",
+      "namePart": "Кросовер",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Лава для гіперекстензій (горизонтальна)",
+      "namePart": "Лава для гіперекстензій (горизонтальна)",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Лава для гіперекстензій 45°",
+      "namePart": "Лава для гіперекстензій 45°",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Лава для гіперекстензій 45°, диск або штанга",
+      "namePart": "Лава для гіперекстензій 45°",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Лава, килимок",
+      "namePart": "Лава",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Не існує (помилка в назві)",
+      "namePart": "Не існує (помилка в назві)",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Платформа або сходинка",
+      "namePart": "Платформа або сходинка",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Стіна",
+      "namePart": "Стіна",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Т-гриф тренажер",
+      "namePart": "Т-гриф тренажер",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер для відведення ніг",
+      "namePart": "Тренажер для відведення ніг",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер для дельт (махи в сторони)",
+      "namePart": "Тренажер для дельт (махи в сторони)",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер для задньої дельти (зворотній Pec Deck)",
+      "namePart": "Тренажер для задньої дельти (зворотній Pec Deck)",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер для зведення ніг (аддуктор)",
+      "namePart": "Тренажер для зведення ніг (аддуктор)",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер для згинання ніг (лежачи)",
+      "namePart": "Тренажер для згинання ніг (лежачи)",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер для згинання ніг (сидячи)",
+      "namePart": "Тренажер для згинання ніг (сидячи)",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер для згинання однієї ноги",
+      "namePart": "Тренажер для згинання однієї ноги",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер для литків сидячи",
+      "namePart": "Тренажер для литків сидячи",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер для литків стоячи або штанга",
+      "namePart": "Тренажер для литків стоячи або штанга",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер для преса (Ab Crunch)",
+      "namePart": "Тренажер для преса (Ab Crunch)",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Тренажер Pec Deck (Метелик)",
+      "namePart": "Тренажер Pec Deck (Метелик)",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Турнік або рама з лямками",
+      "namePart": "Турнік або рама з лямками",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Фітнес-резинка",
+      "namePart": "Фітнес-резинка",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Штанга або гантелі, лава -15-30°",
+      "namePart": "Штанга або гантелі",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Штанга або гантеля",
+      "namePart": "Штанга або гантеля",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Штанга, горизонтальна лава",
+      "namePart": "Штанга",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Штанга, лава, підкладка",
+      "namePart": "Штанга",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Штанга, нахилна лава 30-45°",
+      "namePart": "Штанга",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Штанга, стійки, страховка",
+      "namePart": "Штанга",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "ACC_STEP",
+      "namePart": "ACC_STEP",
+      "count": 1,
+      "format": "id",
+      "suggestedEquipmentId": "ACC_STEP",
+      "existsInTable": true
+    },
+    {
+      "full": "EQ_CALF_SIT",
+      "namePart": "EQ_CALF_SIT",
+      "count": 1,
+      "format": "id",
+      "suggestedEquipmentId": "EQ_CALF_SIT",
+      "existsInTable": true
+    },
+    {
+      "full": "EQ_CALF_STAND",
+      "namePart": "EQ_CALF_STAND",
+      "count": 1,
+      "format": "id",
+      "suggestedEquipmentId": "EQ_CALF_STAND",
+      "existsInTable": true
+    },
+    {
+      "full": "EQ_DIPS_BAR",
+      "namePart": "EQ_DIPS_BAR",
+      "count": 1,
+      "format": "id",
+      "suggestedEquipmentId": "EQ_DIPS_BAR",
+      "existsInTable": true
+    },
+    {
+      "full": "EQ_GRAVITRON",
+      "namePart": "EQ_GRAVITRON",
+      "count": 1,
+      "format": "id",
+      "suggestedEquipmentId": "EQ_GRAVITRON",
+      "existsInTable": true
+    },
+    {
+      "full": "EQ_LEG_PRESS",
+      "namePart": "EQ_LEG_PRESS",
+      "count": 1,
+      "format": "id",
+      "suggestedEquipmentId": "EQ_LEG_PRESS",
+      "existsInTable": true
+    },
+    {
+      "full": "EQ_SMITH",
+      "namePart": "EQ_SMITH",
+      "count": 1,
+      "format": "id",
+      "suggestedEquipmentId": "EQ_SMITH",
+      "existsInTable": true
+    },
+    {
+      "full": "Inter Atletika Iso-Lateral Chest Press (важільний жим від грудей)",
+      "namePart": "Inter Atletika Iso-Lateral Chest Press (важільний жим від грудей)",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    },
+    {
+      "full": "Smith machine, лава",
+      "namePart": "Smith machine",
+      "count": 1,
+      "format": "text",
+      "suggestedEquipmentId": null
+    }
+  ]
+}
