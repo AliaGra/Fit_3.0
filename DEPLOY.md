@@ -65,3 +65,9 @@
 - `railway.json` — опційна конфігурація Railway
 
 Папку `node_modules/` і файл `.env` не комітити (вони в `.gitignore`).
+
+## Cron endpoints (коротко)
+
+- Нагадування учням: `GET https://<your-app>.up.railway.app/cron/reminders?secret=<REMINDER_CRON_SECRET>`
+- Нагадування тренеру про ревізію плану: `GET https://<your-app>.up.railway.app/cron/plan-revision?secret=<REMINDER_CRON_SECRET>` (або `PLAN_REVISION_CRON_SECRET`)
+- Тижневий AI-дайджест для тренерів: `GET https://<your-app>.up.railway.app/cron/weekly-digest?secret=<REMINDER_CRON_SECRET>` (рекомендований розклад: щопонеділка о 08:00)

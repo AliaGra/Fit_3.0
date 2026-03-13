@@ -351,6 +351,8 @@ markdown## 📋 ЗМІСТ
 | 89 | `HIST_BACK_LIST` | hist_detail | hist_list | History.handleCallback() | Назад до списку дат |
 | 90 | `HIST_BACK_GROUP` | hist_ex_select | hist_group_select | History.handleCallback() | Назад до вибору групи |
 | 91 | `HIST_BACK_STUDENT` | hist_menu (coach_student) | — | History.handleCallback() | Назад до картки учня |
+| 92 | `HIST_AI_ANALYZE:{dateStr}` | hist_detail | — | History.handleCallback() → historyAnalysis.getWorkoutAnalysisCached() | AI-аналіз одного тренування |
+| 93 | `HIST_AI_PROGRESS:{exerciseId}` | hist_list (фільтр за вправою) | — | History.handleCallback() → historyAnalysis.getExerciseProgressCached() | AI-аналіз прогресу по вправі |
 
 ### Таблиця: History Text Input States
 
@@ -406,7 +408,7 @@ markdown## 📋 ЗМІСТ
 │ Schedule (Student)         │ 7       │
 │ Navigation                 │ 5       │
 │ Library                    │ 3       │
-│ Історія тренувань (HIST_*) │ 17      │  ← 03.2026
+│ Історія тренувань (HIST_*) │ 19      │  ← 03.2026 + AI_HISTORY
 ├────────────────────────────┼─────────┤
 │ ВСЬОГО CALLBACKS           │ 84      │
 └────────────────────────────┴─────────┘
