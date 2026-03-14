@@ -1,7 +1,7 @@
 # CALLBACK → FSM STATE → MODULE MATRIX
 
-**Версія:** 1.2  
-**Дата:** 21.02.2026  
+**Версія:** 1.3  
+**Дата:** 04.03.2026  
 **Призначення:** Повна матриця співвідношень callback_data, FSM станів та обробників
 
 ---
@@ -245,11 +245,18 @@ markdown## 📋 ЗМІСТ
 | 45 | `COACH_BOOK:{chatId}` | `null` | Показ слотів | `Schedule.handleCallback()` | Записати учня |
 | 46 | `COACH_PROFILE:{chatId}` | `null` | Показ профілю | `Profile.handleCallback()` | Профіль учня |
 
-### Таблиця 5.2: Coach Text Input States
+### Таблиця 5.2: Coach Text Input States (інвайт, параметри)
 
 | № | FSM State | Очікує | Валідація | Наступний State | Обробник |
 |---|-----------|--------|-----------|-----------------|----------|
-| 23 | `coach_add_student_name` | Текст (Ім'я Прізвище) | Min 2 слова | Створення інвайту | `Registration.handleTextMessage()` |
+| 23 | `coach_add_student_name` | Текст (Ім'я Прізвище) | Min 2 слова | `coach_add_student_age` | `Coach.handleTextMessage()` |
+| 23d | `coach_add_student_age` | Дата ДД.ММ.РРРР | 10–100 років | `coach_add_student_gender` | `Coach.handleTextMessage()` |
+| 23e | `coach_add_student_weight` | Число (кг) | WEIGHT_MIN–WEIGHT_MAX | `coach_add_student_height` | `Coach.handleTextMessage()` |
+| 23f | `coach_add_student_height` | Число (см) | HEIGHT_MIN–HEIGHT_MAX | `coach_add_student_waist` | `Coach.handleTextMessage()` |
+| 23g | `coach_add_student_waist` | Число (см) | WAIST_MIN–WAIST_MAX | `coach_add_student_glutes` | `Coach.handleTextMessage()` |
+| 23h | `coach_add_student_glutes` | Число (см) | GLUTES_MIN–GLUTES_MAX | фініш (finishCreateStudentByInvite) | `Coach.handleTextMessage()` |
+
+**Інвайт: після медичного профілю** — крок `coach_add_student_measurements_choice`: callback `INVITE_MEASUREMENTS_SKIP` (фініш) або `INVITE_MEASUREMENTS_FILL` (→ `coach_add_student_weight`). Callback `INVITE_MC_DONE` / `INVITE_MC_SKIP` тепер ведуть до цього кроку, а не одразу до фінішу.
 
 ### Таблиця 5.3: Pricing (Вартість тренувань) Callbacks
 
@@ -323,6 +330,19 @@ markdown## 📋 ЗМІСТ
 | 67 | `LIBRARY_VIEW` | `null` | Показ груп | `Training.handleCallback()` | Бібліотека вправ |
 | 68 | `LIBRARY_GROUP:{groupId}` | `null` | Показ вправ | `Training.handleCallback()` | Переглянути групу |
 | 69 | `LIBRARY_EXERCISE:{exId}` | `null` | Детальний опис | `Training.handleCallback()` | Детальний опис вправи |
+
+### Таблиця 7.3: Абонемент залу (Subscription)
+
+| № | Callback_data | FSM State | Наступний FSM State | Обробник | Дія |
+|---|---------------|-----------|---------------------|----------|-----|
+| 69a | `MENU_SUBSCRIPTION` | `null` (Головне меню) | sub_menu | Router → Subscription.showMenu() | Відкрити меню «Абонемент» |
+| 69b | `SUB_ADD` | sub_menu | sub_add_amount | Subscription.handleCallback() | Додати оплату |
+| 69c | `SUB_HISTORY` | sub_menu | Показ історії | Subscription.handleCallback() | Історія абонементів |
+| 69d | `SUB_BACK` | будь-який sub_* | sub_menu | Subscription.handleCallback() | Назад до меню абонемента |
+| 69e | `SUB_TYPE_UNLIMITED` | sub_add_type | sub_add_start | Subscription.handleCallback() | Безліміт → дата початку |
+| 69f | `SUB_TYPE_FIXED` | sub_add_type | sub_add_count | Subscription.handleCallback() | Фікс. к-сть → кількість тренувань |
+
+**Текстові кроки:** `sub_add_amount` (сума або 0), `sub_add_count` (кількість тренувань), `sub_add_start` (ДД.ММ.РРРР), `sub_add_end` (ДД.ММ.РРРР). Обробник: `Subscription.handleTextMessage()`. Модуль: lib/subscription.js.
 
 ---
 

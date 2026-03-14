@@ -1,6 +1,6 @@
 # FIT 3.0 — Telegram-бот для фітнес-тренерів та учнів
 
-**Оновлення документації:** 21.02.2026
+**Оновлення документації:** 04.03.2026
 
 Telegram-бот на Node.js для керування тренуваннями: тренер веде учнів, розклад, плани тренувань; учень виконує план, записується на слоти, отримує нагадування. Підтримка AI (OpenAI): персоналізовані коментарі в планах, розумні нагадування, аналіз невиконання вправ.
 
@@ -23,7 +23,7 @@ Telegram-бот на Node.js для керування тренуваннями:
 ## Структура проєкту
 
 ```
-├── index.js              # Точка входу: HTTP-сервер, /webhook, /cron/reminders, /cron/plan-revision
+├── index.js              # Точка входу: HTTP-сервер, /webhook, /cron/reminders, /cron/plan-revision, /cron/subscription-reminders
 ├── package.json
 ├── lib/
 │   ├── router.js         # Маршрутизація callback та команд
@@ -37,6 +37,8 @@ Telegram-бот на Node.js для керування тренуваннями:
 │   ├── planGenerator.js  # Генерація плану (авто-підбір), інтеграція AI-коментарів
 │   ├── reminders.js      # Нагадування учням (cron), AI-персоналізація
 │   ├── planRevisionReminders.js  # Нагадування тренеру про ревізію плану (cron)
+│   ├── subscription.js   # Абонемент залу (опційно: сума, кількість тренувань/безліміт, термін)
+│   ├── subscriptionReminders.js # Нагадування про закінчення абонемента (за 3 і 2 дні; cron)
 │   ├── library.js        # Бібліотека вправ
 │   ├── reports.js        # Звіти тренера
 │   ├── constants.js, helpers.js
@@ -50,6 +52,7 @@ Telegram-бот на Node.js для керування тренуваннями:
 ├── supabase_migration_ai_content.sql   # Таблиця ai_generated_content
 ├── supabase_migration_plan_revision_reminder.sql
 ├── supabase_migration_accent_zones.sql # accent_zones, avoid_zones, split_config у training_plans
+├── supabase_gym_subscriptions.sql      # gym_subscriptions (абонемент залу)
 └── ...інші міграції та документи
 ```
 
@@ -93,5 +96,6 @@ Telegram-бот на Node.js для керування тренуваннями:
 
 - **GET /cron/reminders?secret=XXX** — нагадування учням перед тренуванням. Запускати по розкладу (наприклад щогодини). Секрет: `REMINDER_CRON_SECRET`.
 - **GET /cron/plan-revision?secret=XXX** — нагадування тренеру про ревізію плану (valid_until минув; термін ревізії revision_weeks за рівнем: 10/7/5 тиж.). Секрет: `REMINDER_CRON_SECRET` або `PLAN_REVISION_CRON_SECRET`.
+- **GET /cron/subscription-reminders?secret=XXX** — нагадування про закінчення абонемента залу (за 3 і 2 дні до end_date). Надсилається користувачу в бот. Секрет: `REMINDER_CRON_SECRET`. Рекомендовано запускати раз на добу.
 
 Деталі змінних середовища — у **DEPLOY.md** та **Підключення_AI_покроково.md**.
