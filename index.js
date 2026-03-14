@@ -93,6 +93,28 @@ const server = http.createServer((req, res) => {
       }
       return;
     }
+    if (url.startsWith('/cron/subscription-reminders')) {
+      const secret = process.env.REMINDER_CRON_SECRET || '';
+      const qs = url.includes('?') ? url.split('?')[1] : '';
+      const q = qs ? new URLSearchParams(qs) : null;
+      if (!secret || (q && q.get('secret') === secret)) {
+        const SubscriptionReminders = require('./lib/subscriptionReminders');
+        SubscriptionReminders.sendSubscriptionReminders()
+          .then((r) => {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ok: true, sent: r.sent }));
+          })
+          .catch((err) => {
+            console.error('cron/subscription-reminders', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: err.message }));
+          });
+      } else {
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+        res.end('Forbidden');
+      }
+      return;
+    }
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('FIT 3.0 bot. Webhook: POST /webhook');
     return;
