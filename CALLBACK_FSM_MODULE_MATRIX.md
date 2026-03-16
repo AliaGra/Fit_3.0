@@ -48,6 +48,7 @@ const [action, ...params] = callbackData.split(':');
 | 18 | `REG_AVD_SKP` / `REG_AVD_NXT` | `reg_avoid_select` | `reg_city` | `Registration.handleCallback()` | Пропустити / Зберегти |
 | 19 | `REG_AVD_BCK` | `reg_avoid_select` | `reg_accent_select` | `Registration.handleCallback()` | Назад до акценту |
 | 20 | `CITY:{cityName}` | `reg_city` | `reg_gender` або фініш | `Registration.handleCallback()` | Вибір міста зі списку |
+| 21 | `REG_MEAS_SKIP` / `REG_MEAS_FILL` | `reg_measurements_choice` | `null` (фініш) або `reg_weight` | `Registration.handleCallback()` | Пропустити або ввести заміри тіла (вага, талія, стегна, ягодиці, плечі, груди, % жиру) |
 
 ### Таблиця 1.2: Registration Text Input States
 
@@ -62,8 +63,9 @@ const [action, ...params] = callbackData.split(':');
 | 5b | `reg_accent_select` | Callback | — | `reg_avoid_select` (REG_ACC_NXT) | `Registration.handleCallback()` |
 | 5c | `reg_avoid_select` | Callback | — | `reg_city` (REG_AVD_SKP/NXT) | `Registration.handleCallback()` |
 | 6 | `reg_height` | Текст (число) | 100-250 см | `reg_city` (student) | `Registration.handleTextMessage()` |
-| 7 | `reg_instagram` | Текст (@username) | Опціонально, `@` або порожньо | `reg_calendar_id` | `Registration.handleTextMessage()` |
-| 8 | `reg_calendar_id` | Текст (ID) | Email формат або порожньо | `null` (фініш) | `Registration.handleTextMessage()` |
+| 7 | `reg_weight` / `reg_waist` / `reg_hip` / `reg_glutes` / `reg_arm` / `reg_shoulders` / `reg_chest` / `reg_body_fat` | Текст (число) | Діапазони з CONSTANTS.VALIDATION | Ланцюжок замірів → `finishRegistration` | `Registration.handleTextMessage()` |
+| 8 | `reg_instagram` | Текст (@username) | Опціонально, `@` або порожньо | `reg_calendar_id` | `Registration.handleTextMessage()` |
+| 9 | `reg_calendar_id` | Текст (ID) | Email формат або порожньо | `null` (фініш) | `Registration.handleTextMessage()` |
 
 ---
 
