@@ -52,6 +52,7 @@ Telegram-бот на Node.js для керування тренуваннями:
 ├── supabase_migration_ai_content.sql   # Таблиця ai_generated_content
 ├── supabase_migration_plan_revision_reminder.sql
 ├── supabase_migration_accent_zones.sql # accent_zones, avoid_zones, split_config у training_plans
+├── supabase_migration_users_accent_avoid_zones.sql # accent_zones, avoid_zones у users (профіль, реєстрація)
 ├── supabase_gym_subscriptions.sql      # gym_subscriptions (абонемент залу)
 └── ...інші міграції та документи
 ```

@@ -1,6 +1,6 @@
 # CALLBACK → FSM STATE → MODULE MATRIX
 
-**Версія:** 1.3  
+**Версія:** 1.4  
 **Дата:** 04.03.2026  
 **Призначення:** Повна матриця співвідношень callback_data, FSM станів та обробників
 
@@ -39,7 +39,15 @@ const [action, ...params] = callbackData.split(':');
 | 9 | `REG_GOAL_KEEP` | `reg_goal` | `reg_birth_date` | `Registration.handleCallback()` | Мета "Підтримувати" |
 | 10 | `REG_SKIP_LASTNAME` | `reg_last_name` | `reg_city` | `Registration.handleCallback()` | Пропустити прізвище |
 | 11 | `REG_CONTINUE` | `reg_first_name` | `reg_last_name` | `Registration.handleCallback()` | Продовжити після імені |
-| 12 | `CITY:{cityName}` | `reg_city` | `reg_gender` або фініш | `Registration.handleCallback()` | Вибір міста зі списку |
+| 12 | `REG_ACCENT_SKIP` | `reg_accent_choice` | `reg_city` | `Registration.handleCallback()` | Пропустити зони акценту |
+| 13 | `REG_ACCENT_FILL` | `reg_accent_choice` | `reg_accent_select` | `Registration.handleCallback()` | Заповнити зони акценту |
+| 14 | `REG_ACC_TGL:{zone}` | `reg_accent_select` | — | `Registration.handleCallback()` | Тогл зони акценту |
+| 15 | `REG_ACC_NXT` | `reg_accent_select` | `reg_avoid_select` | `Registration.handleCallback()` | Далі до зон уникнення |
+| 16 | `REG_ACC_BCK` | `reg_accent_select` | `reg_accent_choice` | `Registration.handleCallback()` | Назад |
+| 17 | `REG_AVD_TGL:{zone}` | `reg_avoid_select` | — | `Registration.handleCallback()` | Тогл зони уникнення |
+| 18 | `REG_AVD_SKP` / `REG_AVD_NXT` | `reg_avoid_select` | `reg_city` | `Registration.handleCallback()` | Пропустити / Зберегти |
+| 19 | `REG_AVD_BCK` | `reg_avoid_select` | `reg_accent_select` | `Registration.handleCallback()` | Назад до акценту |
+| 20 | `CITY:{cityName}` | `reg_city` | `reg_gender` або фініш | `Registration.handleCallback()` | Вибір міста зі списку |
 
 ### Таблиця 1.2: Registration Text Input States
 
@@ -49,7 +57,10 @@ const [action, ...params] = callbackData.split(':');
 | 2 | `reg_first_name` | Текст (ім'я) | Не порожнє, 2-30 символів | `reg_last_name` або `reg_continue` | `Registration.handleTextMessage()` |
 | 3 | `reg_last_name` | Текст (прізвище) | Не порожнє, 2-50 символів | `reg_city` | `Registration.handleTextMessage()` |
 | 4 | `reg_city` | Текст (місто) | Не порожнє, 2-50 символів | `reg_gender` (student) або `reg_instagram` (coach) | `Registration.handleTextMessage()` |
-| 5 | `reg_birth_date` | Текст (дата) | `dd.mm.yyyy`, валідна дата | `reg_city` (student) або `reg_instagram` (coach) | `Registration.handleTextMessage()` |
+| 5 | `reg_birth_date` | Текст (дата) | `dd.mm.yyyy`, валідна дата | `reg_accent_choice` | `Registration.handleTextMessage()` |
+| 5a | `reg_accent_choice` | Callback | — | `reg_city` (skip) або `reg_accent_select` (fill) | `Registration.handleCallback()` |
+| 5b | `reg_accent_select` | Callback | — | `reg_avoid_select` (REG_ACC_NXT) | `Registration.handleCallback()` |
+| 5c | `reg_avoid_select` | Callback | — | `reg_city` (REG_AVD_SKP/NXT) | `Registration.handleCallback()` |
 | 6 | `reg_height` | Текст (число) | 100-250 см | `reg_city` (student) | `Registration.handleTextMessage()` |
 | 7 | `reg_instagram` | Текст (@username) | Опціонально, `@` або порожньо | `reg_calendar_id` | `Registration.handleTextMessage()` |
 | 8 | `reg_calendar_id` | Текст (ID) | Email формат або порожньо | `null` (фініш) | `Registration.handleTextMessage()` |
@@ -70,6 +81,13 @@ const [action, ...params] = callbackData.split(':');
 | 18 | `PROFILE_EDIT_CITY` | `null` | `profile_edit_city` | `Profile.handleCallback()` | Змінити місто |
 | 19 | `PROFILE_EDIT_HEIGHT` | `null` | `profile_edit_height` | `Profile.handleCallback()` | Змінити зріст |
 | 20 | `PROFILE_EDIT_BIRTHDATE` | `null` | `profile_edit_birthdate` | `Profile.handleCallback()` | Змінити дату народження |
+| 20a | `PROFILE_EDIT_ACCENT` | `null` | `profile_accent_select` | `Profile.handleCallback()` | Зони акценту та уникнення |
+| 20b | `PROFILE_ACC_TGL:{zone}` | `profile_accent_select` | — | `Profile.handleCallback()` | Тогл зони акценту |
+| 20c | `PROFILE_ACC_NXT` | `profile_accent_select` | `profile_avoid_select` | `Profile.handleCallback()` | Далі |
+| 20d | `PROFILE_ACC_BCK` | `profile_accent_select` | Показ edit menu | `Profile.handleCallback()` | Назад |
+| 20e | `PROFILE_AVD_TGL:{zone}` | `profile_avoid_select` | — | `Profile.handleCallback()` | Тогл зони уникнення |
+| 20f | `PROFILE_AVD_SKP` / `PROFILE_AVD_NXT` | `profile_avoid_select` | `null` (збережено) | `Profile.handleCallback()` | Пропустити / Зберегти |
+| 20g | `PROFILE_AVD_BCK` | `profile_avoid_select` | `profile_accent_select` | `Profile.handleCallback()` | Назад до акценту |
 
 ### Таблиця 2.2: Profile Text Input States
 
@@ -254,9 +272,11 @@ markdown## 📋 ЗМІСТ
 | 23e | `coach_add_student_weight` | Число (кг) | WEIGHT_MIN–WEIGHT_MAX | `coach_add_student_height` | `Coach.handleTextMessage()` |
 | 23f | `coach_add_student_height` | Число (см) | HEIGHT_MIN–HEIGHT_MAX | `coach_add_student_waist` | `Coach.handleTextMessage()` |
 | 23g | `coach_add_student_waist` | Число (см) | WAIST_MIN–WAIST_MAX | `coach_add_student_glutes` | `Coach.handleTextMessage()` |
-| 23h | `coach_add_student_glutes` | Число (см) | GLUTES_MIN–GLUTES_MAX | фініш (finishCreateStudentByInvite) | `Coach.handleTextMessage()` |
+| 23h | `coach_add_student_glutes` | Число (см) | GLUTES_MIN–GLUTES_MAX | `coach_add_student_accent_select` | `Coach.handleTextMessage()` |
+| 23i | `coach_add_student_accent_select` | Callback | — | `coach_add_student_avoid_select` (INV_ACC_NXT) або назад | `Coach.handleCallback()` |
+| 23j | `coach_add_student_avoid_select` | Callback | — | фініш (INV_AVD_SKP / INV_AVD_NXT) | `Coach.handleCallback()` |
 
-**Інвайт: після медичного профілю** — крок `coach_add_student_measurements_choice`: callback `INVITE_MEASUREMENTS_SKIP` (фініш) або `INVITE_MEASUREMENTS_FILL` (→ `coach_add_student_weight`). Callback `INVITE_MC_DONE` / `INVITE_MC_SKIP` тепер ведуть до цього кроку, а не одразу до фінішу.
+**Інвайт: після медичного профілю** — крок `coach_add_student_measurements_choice`: callback `INVITE_MEASUREMENTS_SKIP` (→ зони акценту) або `INVITE_MEASUREMENTS_FILL` (→ `coach_add_student_weight`). Після параметрів або пропуску — **зони акценту та уникнення**: `showInviteAccentZones` → `askInviteAvoidZones`; callback `INV_ACC_TGL`, `INV_ACC_NXT`, `INV_ACC_BCK`, `INV_AVD_TGL`, `INV_AVD_SKP`, `INV_AVD_NXT`, `INV_AVD_BCK`. Після «Далі»/«Пропустити» у блоці уникнення — finishCreateStudentByInvite з accentZones, avoidZones. Callback `INVITE_MC_DONE` / `INVITE_MC_SKIP` ведуть до `coach_add_student_measurements_choice`.
 
 ### Таблиця 5.3: Pricing (Вартість тренувань) Callbacks
 
