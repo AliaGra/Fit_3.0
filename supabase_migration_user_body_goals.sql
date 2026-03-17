@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS user_body_goals (
   goal_shoulders decimal(5,1),
   goal_chest     decimal(5,1),
   set_by_coach   text REFERENCES users(chat_id),
+  goals_analysis jsonb,
+  analysis_date  timestamptz,
   updated_at     timestamptz DEFAULT now()
 );
 
