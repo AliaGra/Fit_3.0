@@ -31,6 +31,9 @@ Telegram-бот на Node.js для керування тренуваннями:
 │   ├── supabase.js       # Клієнт Supabase, CRUD
 │   ├── user.js, coach.js, menu.js, state.js
 │   ├── registration.js, profile.js, medicalProfile.js, medicalFilter.js, medicalDecode.js
+│   ├── bodyGoals.js      # Бажані параметри: validate, analyzeGoalsVsCurrentState, save, cache
+│   ├── bodyType.js       # Класифікація типу фігури (apple/pear/hourglass/v_shape тощо)
+│   ├── bodyMetrics.js    # WH/BMI розрахунки, порогові значення
 │   ├── schedule.js       # Розклад, слоти, календар
 │   ├── training.js       # Тренування (учень/тренер), завершення, автопрогресія
 │   ├── trainingPlan.js   # Перегляд планів, дні, вправи
@@ -48,9 +51,12 @@ Telegram-бот на Node.js для керування тренуваннями:
 │       ├── aiValidator.js
 │       ├── planComments.js    # Коментарі тренера до вправ плану
 │       ├── smartReminder.js   # Розумні нагадування
-│       └── failureAnalysis.js # Аналіз невиконання вправ
+│       ├── failureAnalysis.js # Аналіз невиконання вправ
+│       ├── bodyAnalysis.js    # Аналіз тіла за замірами (generateAndSend/Save, getStored, sendStored)
+│       └── goalsVsCurrent.js  # AI-переказ аналізу цілей vs поточний стан
 ├── supabase_migration_ai_content.sql   # Таблиця ai_generated_content
 ├── supabase_migration_plan_revision_reminder.sql
+├── supabase_migration_user_body_goals.sql   # user_body_goals (бажані параметри тіла)
 ├── supabase_migration_accent_zones.sql # accent_zones, avoid_zones, split_config у training_plans
 ├── supabase_migration_users_accent_avoid_zones.sql # accent_zones, avoid_zones у users (профіль, реєстрація)
 ├── supabase_gym_subscriptions.sql      # gym_subscriptions (абонемент залу)
