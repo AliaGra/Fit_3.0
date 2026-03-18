@@ -1,6 +1,6 @@
 # CALLBACK → FSM STATE → MODULE MATRIX
 
-**Версія:** 1.4  
+**Версія:** 1.5  
 **Дата:** 04.03.2026  
 **Призначення:** Повна матриця співвідношень callback_data, FSM станів та обробників
 
@@ -48,7 +48,10 @@ const [action, ...params] = callbackData.split(':');
 | 18 | `REG_AVD_SKP` / `REG_AVD_NXT` | `reg_avoid_select` | `reg_city` | `Registration.handleCallback()` | Пропустити / Зберегти |
 | 19 | `REG_AVD_BCK` | `reg_avoid_select` | `reg_accent_select` | `Registration.handleCallback()` | Назад до акценту |
 | 20 | `CITY:{cityName}` | `reg_city` | `reg_gender` або фініш | `Registration.handleCallback()` | Вибір міста зі списку |
-| 21 | `REG_MEAS_SKIP` / `REG_MEAS_FILL` | `reg_measurements_choice` | `null` (фініш) або `reg_weight` | `Registration.handleCallback()` | Пропустити або ввести заміри тіла (вага, талія, стегна, ягодиці, плечі, груди, % жиру) |
+| 21 | `REG_MEAS_SKIP` / `REG_MEAS_FILL` | `reg_measurements_choice` | `reg_body_goals_choice` або `reg_weight` | `Registration.handleCallback()` | Пропустити або ввести заміри тіла (вага, талія, стегна, ягодиці, плечі, груди, % жиру) |
+| 21a | `REG_BODY_GOALS_SKIP` | `reg_body_goals_choice` | `null` (finishRegistration) | `Registration.handleCallback()` | Пропустити бажані параметри |
+| 21b | `REG_BODY_GOALS_FILL` | `reg_body_goals_choice` | `reg_body_goals_weight` | `Registration.handleCallback()` | Заповнити бажані параметри |
+| 21c | `REG_BODY_GOALS_SKIP_WEIGHT` … `REG_BODY_GOALS_SKIP_CHEST` | `reg_body_goals_*` | Наступний крок або saveRegBodyGoalsAndFinish | `Registration.handleCallback()` | Пропустити поле |
 
 ### Таблиця 1.2: Registration Text Input States
 
@@ -65,7 +68,9 @@ const [action, ...params] = callbackData.split(':');
 | 6 | `reg_height` | Текст (число) | 100-250 см | `reg_city` (student) | `Registration.handleTextMessage()` |
 | 7 | `reg_weight` / `reg_waist` / `reg_hip` / `reg_glutes` / `reg_arm` / `reg_shoulders` / `reg_chest` / `reg_body_fat` | Текст (число) | Діапазони з CONSTANTS.VALIDATION | Ланцюжок замірів → `finishRegistration` | `Registration.handleTextMessage()` |
 | 8 | `reg_instagram` | Текст (@username) | Опціонально, `@` або порожньо | `reg_calendar_id` | `Registration.handleTextMessage()` |
-| 9 | `reg_calendar_id` | Текст (ID) | Email формат або порожньо | `null` (фініш) | `Registration.handleTextMessage()` |
+| 9 | `reg_calendar_id` | Текст (ID) | Email формат або порожньо | `reg_body_goals_choice` | `Registration.handleTextMessage()` |
+| 9a | `reg_body_goals_choice` | Callback | — | `null` (REG_BODY_GOALS_SKIP) або `reg_body_goals_weight` (REG_BODY_GOALS_FILL) | `Registration.handleCallback()` |
+| 9b | `reg_body_goals_weight` … `reg_body_goals_chest` | Текст (число) | bodyGoals.validateGoalField(..., null) | Наступний крок або saveRegBodyGoalsAndFinish | `Registration.handleTextMessage()` |
 
 ---
 
@@ -264,6 +269,10 @@ markdown## 📋 ЗМІСТ
 | 44 | `COACH_HISTORY:{chatId}` | `null` | Показ фільтрів | `Training.handleCallback()` | Історія учня |
 | 45 | `COACH_BOOK:{chatId}` | `null` | Показ слотів | `Schedule.handleCallback()` | Записати учня |
 | 46 | `COACH_PROFILE:{chatId}` | `null` | Показ профілю | `Profile.handleCallback()` | Профіль учня |
+| 46h | `COACH_BODY_GOALS:{chatId}` | `null` (картка учня) | `coach_body_goals_weight` | `Coach.handleCallback()` | Бажані параметри учня |
+| 46i | `COACH_BODY_GOALS_SKIP_WEIGHT` … `COACH_BODY_GOALS_SKIP_CHEST` | `coach_body_goals_*` | Наступний крок або збереження | `Coach.handleCallback()` | Пропустити поле |
+| 46j | `INVITE_BODY_GOALS_SKIP_WEIGHT` … `INVITE_BODY_GOALS_SKIP_CHEST` | `invite_body_goals_*` | Наступний крок або finishCreateStudentByInvite | `Coach.handleCallback()` | Пропустити поле (інвайт) |
+| 46k | `INVITE_BODY_GOALS_BCK` | `invite_body_goals_weight` | `coach_add_student_avoid_select` | `Coach.handleCallback()` | Назад до зон уникнення |
 
 ### Таблиця 5.2: Coach Text Input States (інвайт, параметри)
 
@@ -276,9 +285,13 @@ markdown## 📋 ЗМІСТ
 | 23g | `coach_add_student_waist` | Число (см) | WAIST_MIN–WAIST_MAX | `coach_add_student_glutes` | `Coach.handleTextMessage()` |
 | 23h | `coach_add_student_glutes` | Число (см) | GLUTES_MIN–GLUTES_MAX | `coach_add_student_accent_select` | `Coach.handleTextMessage()` |
 | 23i | `coach_add_student_accent_select` | Callback | — | `coach_add_student_avoid_select` (INV_ACC_NXT) або назад | `Coach.handleCallback()` |
-| 23j | `coach_add_student_avoid_select` | Callback | — | фініш (INV_AVD_SKP / INV_AVD_NXT) | `Coach.handleCallback()` |
+| 23j | `coach_add_student_avoid_select` | Callback | — | `invite_body_goals_weight` (INV_AVD_SKP / INV_AVD_NXT) | `Coach.handleCallback()` |
+| 23k | `invite_body_goals_weight` … `invite_body_goals_chest` | Текст (число) | bodyGoals.validateGoalField(..., height) | Наступний крок або finishCreateStudentByInvite | `Coach.handleTextMessage()` |
+| 23l | `coach_body_goals_weight` … `coach_body_goals_chest` | Текст (число) | bodyGoals.validateGoalField(..., student.height) | Наступний крок або bodyGoals.saveBodyGoals | `Coach.handleTextMessage()` |
 
-**Інвайт: після медичного профілю** — крок `coach_add_student_measurements_choice`: callback `INVITE_MEASUREMENTS_SKIP` (→ зони акценту) або `INVITE_MEASUREMENTS_FILL` (→ `coach_add_student_weight`). Після параметрів або пропуску — **зони акценту та уникнення**: `showInviteAccentZones` → `askInviteAvoidZones`; callback `INV_ACC_TGL`, `INV_ACC_NXT`, `INV_ACC_BCK`, `INV_AVD_TGL`, `INV_AVD_SKP`, `INV_AVD_NXT`, `INV_AVD_BCK`. Після «Далі»/«Пропустити» у блоці уникнення — finishCreateStudentByInvite з accentZones, avoidZones. Callback `INVITE_MC_DONE` / `INVITE_MC_SKIP` ведуть до `coach_add_student_measurements_choice`.
+**Інвайт: після медичного профілю** — крок `coach_add_student_measurements_choice`: callback `INVITE_MEASUREMENTS_SKIP` (→ зони акценту) або `INVITE_MEASUREMENTS_FILL` (→ `coach_add_student_weight`). Після параметрів або пропуску — **зони акценту та уникнення**: `showInviteAccentZones` → `askInviteAvoidZones`; callback `INV_ACC_TGL`, `INV_ACC_NXT`, `INV_ACC_BCK`, `INV_AVD_TGL`, `INV_AVD_SKP`, `INV_AVD_NXT`, `INV_AVD_BCK`. Після «Далі»/«Пропустити» у блоці уникнення — **бажані параметри тіла**: `askInviteBodyGoalsWeight` → `invite_body_goals_weight` … `invite_body_goals_chest`; callback `INVITE_BODY_GOALS_SKIP_WEIGHT` … `INVITE_BODY_GOALS_SKIP_CHEST`, `INVITE_BODY_GOALS_BCK` (→ назад до зон уникнення). Після останнього кроку — finishCreateStudentByInvite. Callback `INVITE_MC_DONE` / `INVITE_MC_SKIP` ведуть до `coach_add_student_measurements_choice`.
+
+**Інвайт: бажані параметри (текст):** FSM `invite_body_goals_weight` … `invite_body_goals_chest` — Coach.handleTextMessage(); валідація через bodyGoals.validateGoalField(..., state.inviteHeight). Router: кроки `invite_*` маршрутизуються в Coach.
 
 ### Таблиця 5.3: Pricing (Вартість тренувань) Callbacks
 
