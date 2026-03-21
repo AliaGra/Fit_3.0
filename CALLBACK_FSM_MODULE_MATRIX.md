@@ -324,7 +324,7 @@ markdown## 📋 ЗМІСТ
 | № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
 |---|---------------|-------------------|---------------------|----------|-----|
 | 47 | `SCH_MY_SCHEDULE` | `null` (Coach Menu) | Показ записів | `Schedule.handleCallback()` | Меню «Розклад» (тренер) |
-| 47a | `SCH_MARK_TRAINING` / `SCH_MARK_TRAINING:{page}` | `null`; після ✔️ — `afterCompleteSlot=mark_training` | — | `Schedule.handleCallback()` | «Відмітити тренування» (підтверджені слоти 7 днів) |
+| 47a | `SCH_MARK_TRAINING` / `SCH_MARK_TRAINING:{page}` | `null`; після ✔️ — `afterCompleteSlot=mark_training` | — | `Schedule.handleCallback()` | «Відмітити тренування» (підтверджені слоти, 21 день) |
 | 48 | `SCH_BOOK_COACH:{slotId}` | `null` | `sch_select_student` | `Schedule.handleCallback()` | Записати когось на слот |
 | 49 | `SCH_C_REQ:{eventId}_{studentId}` | `null` | `sch_waiting_confirm` | `Schedule.handleCallback()` | Тренер записує учня (запит) |
 | 50 | `SCH_CONF:{slotId}` | `null` | Підтвердження | `Schedule.handleCallback()` | Тренер підтверджує запит учня |
