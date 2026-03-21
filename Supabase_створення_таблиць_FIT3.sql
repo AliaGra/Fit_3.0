@@ -105,7 +105,8 @@ CREATE TABLE IF NOT EXISTS workout_schedule (
   cal_event_id  text,
   price_charged numeric,
   currency      text,
-  training_type text
+  training_type text,
+  reschedule_from_slot_id text NULL
 );
 
 -- 8. Історія замірів (chat_id → users)
