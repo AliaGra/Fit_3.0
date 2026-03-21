@@ -449,6 +449,82 @@ markdown## 📋 ЗМІСТ
 
 ---
 
+---
+
+## 🆕 БЛОК: ОНОВЛЕННЯ 03.2026 (Чат Mar 2026)
+
+### Нові callbacks — Розклад (учень)
+
+| № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
+|---|---------------|-------------------|---------------------|----------|-----|
+| S1 | `SCH_S_MY_EDIT` | `null` (меню «Розклад») | Показ слотів з кнопками дій | `Schedule.handleCallback()` | «🔄 Змінити запис» — підменю зі слотами і кнопкою «Перенести» |
+| S2 | `SCH_CR_OK:{newSlotId}` | `null` (кнопка тренеру) | Підтвердження переносу | `Schedule.handleCallback()` | Тренер підтверджує перенос учня (коротка форма, без 64-байт помилки) |
+| S3 | `SCH_CR_NO:{newSlotId}` | `null` (кнопка тренеру) | Відхилення переносу | `Schedule.handleCallback()` | Тренер відхиляє перенос учня (коротка форма) |
+
+**Примітка SCH_CR_OK / SCH_CR_NO:** Замінюють `SCH_COACH_CONF_RESCHEDULE` + `SCH_COACH_DECLINE_RESCHEDULE` з двома UUID (перевищення 64 байти Telegram). Приймають тільки `newSlotId`; старий слот знаходиться автоматично через `getSlotsByStudentAndStatus(BOOKED)`.
+
+### Нові callbacks — Розклад (тренер — перенос через календар)
+
+| № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
+|---|---------------|-------------------|---------------------|----------|-----|
+| C1 | `SCH_C_RES_CAL` | `sch_coach_reschedule_pick` | Показ календаря | `Schedule.handleCallback()` | Назад до календаря переносу тренера |
+| C2 | `SCH_C_RES_DAY:{dateKey}` | `sch_coach_reschedule_pick` | Показ слотів дня | `Schedule.handleCallback()` | Тренер обрав дату для переносу |
+| C3 | `SCH_C_RES_CANCEL` | `sch_coach_reschedule_pick` | `showCoachCalendar` | `Schedule.handleCallback()` | Скасувати перенос тренера |
+
+**Старий флоу:** `SCH_RESCHEDULE_REQ` → плоский список 8 слотів  
+**Новий флоу:** `SCH_RESCHEDULE_REQ` → `showCoachRescheduleCalendar` (21 день) → `SCH_C_RES_DAY` → слоти дня → `SCH_RESCHEDULE_PICK` → підтвердження → `showCoachCalendar`
+
+### Зміни UX — Меню «Мій розклад» (тренер)
+
+- **Порядок кнопок:** «📆 Календар (21 день)» переміщено на **1-е місце** у `showCoachMyScheduleMenu`
+- **Перейменування:** «Мої резерви» → **«Мої перерви»**; кнопка слота «📌 Резерв» → **«📌 Хочу перерву»**
+- **Підказки (viewHint):** видалені з перегляду «7 днів (зайняті)» і «7 днів (резерв)»
+- **Формат дати:** у `showCoachDaySlots` рік більше **не відображається** у тексті і кнопках (`noYear: true` в `formatSlotDateTime`)
+- **Резерв → пауза:** після встановлення перерви (`setSlotReserve`) повідомлення «позначено як перерва» + **1.5 сек затримка** перед оновленням
+
+### Зміни UX — Меню «Розклад» (тренер)
+
+- «📌 Створити резерв» → **«📌 Створити перерву»**
+- «🏖 Відпустка» → **«🏖 Створити відпустку»**
+
+### Зміни UX — Меню «Розклад» (учень)
+
+- Кнопка **«🔄 Змінити запис»** (`SCH_S_MY_EDIT`) додана до `showScheduleSubmenu` (menu.js)
+- «Мій розклад» тепер показує **тільки список** (без кнопок дій на кожен слот)
+- Після запиту на запис (`SCH_S_REQ`) учень повертається до **календаря** (не до списку дня)
+- Календар учня: **🔵** позначає дати, де вже є підтверджений або очікуваний запис
+- Те саме 🔵 — у календарі переносу (`showStudentRescheduleCalendar`)
+
+### Зміни — Інвайт активація (lib/registration.js, lib/user.js, lib/supabase.js)
+
+- **Fallback для вже зареєстрованого учня:** якщо `activateInvite` кидає `This Telegram account is already registered` → автоматично викликається `linkCoachByInviteCode(chatId, code)`
+- **FK-constraint fix:** `replaceInviteWithChatId` тепер спочатку **вставляє** нового користувача (INSERT), потім переносить залежні таблиці (`user_body_goals`, `user_medical_conditions` тощо), і тільки потім позначає інвайт USED → усуває помилку `user_body_goals_chat_id_fkey`
+- Нові функції в `supabase.js`: `getUserByUserId(userId)`, `syncUserChatIdToUserId(userId)`
+
+### Зміни — Ідеальна вага (lib/bodyMetrics.js, lib/bodyGoals.js, lib/ai/bodyAnalysis.js)
+
+| Правило | Опис | Реалізація |
+|---------|------|-----------|
+| BMI min (ж) | Мінімальний ІМТ для goal_weight: **17.5** | `getBMIMinForGoal('female', false)` |
+| BMI min (ч) | Мінімальний ІМТ для goal_weight: **18.0** | `getBMIMinForGoal('male', false)` |
+| BMI min (підлітки ≤17) | Мінімальний ІМТ для goal_weight: **16.5** | `getBMIMinForGoal(*, true)` |
+| BMI max | Максимальний ІМТ для goal_weight: **29.9** | `BMI_RANGES.goal_max = 29.9` |
+| Fallback floor (ж) | При зрості < 152.4 см — мін. база **43 кг** | `Math.max(adjIdeal, 43.0)` |
+| Fallback floor (ч) | При зрості < 152.4 см — мін. база **47 кг** | `Math.max(adjIdeal, 47.0)` |
+| Конфіденційність підлітків | Учень-підліток (age ≤17) **не бачить числових діапазонів** ваги | `showIdealNumbers = !isTeen \|\| forCoach` |
+
+### Зміни — Зони акценту (lib/registration.js, lib/profile.js)
+
+- При виборі **«Все рівномірно»** або **2-ї зони** автоматичний перехід до «Зони, які не розвиваємо» (без кнопки «→ Далі»)
+- Застосовується і при реєстрації, і при редагуванні профілю
+
+### Зміни — Меню обмірів тренера (lib/coach.js)
+
+- У меню `showCoachMeasurementsPicker`: кнопки тепер показують **поточні значення** (напр. `⚖️ Вага: 72 кг`); fallback з профілю учня якщо в останньому замірі поле null
+- Видалено підменю **«📌 Поточні обміри»** з меню «Обміри/Активність»
+
+---
+
 ## 📊 СТАТИСТИКА CALLBACKS
 
 ```
