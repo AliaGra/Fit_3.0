@@ -186,6 +186,7 @@ ADD COLUMN IF NOT EXISTS age_group text;
 
 ## Розклад тренера (оновлення Mar 2026, `lib/schedule.js`)
 
+- **Налаштування шаблону:** опція **«Різний час по днях тижня»** — `work_hours_by_weekday` у `coach_schedule_settings` (міграція `supabase_migration_coach_schedule_work_hours_by_weekday.sql`); генерація слотів (`generateSlotsForCoach`, `createSlotsForCoachForDate`) бере інтервал через `getWorkHoursForWeekday`. Callbacks: `SCH_SETTINGS_EDIT_WORK:perday`, `SCH_SETTINGS_DAY_HOURS:{0–6}`, `SCH_SETTINGS_WORK_PER_DAY_DONE`; FSM `SCH_SETTINGS_WORK_PER_DAY`.
 - **Мій розклад:** лічильники на кнопках фільтрів і списки — **21 день** (`COACH_MY_SCHEDULE_WINDOW_DAYS`, `getCoachMyScheduleWindowStartEndKeys`); без «7 днів» у назвах; **«Всі слоти»** прибрано.
 - **«Вільні слоти»** (тренер): як **«Зайняті слоти»** — лише **текст** (заголовок секції «🕐 Вільні слоти», далі по днях: день тижня + дата, рядки `час — Вільний`), **без інлайн-кнопок по слотах** і без пагінації; рядок **макс. вільних на день**; `showCoach7DaysView` + `filter === 'available'`, `pageSlots = []`. Док.: `README.md` (параграф після таблиці документів), `CALLBACK_FSM_MODULE_MATRIX.md`, §4.4.7 у `Бізнес-логіка_Gym_3_0_v1.1.md`.
 - **Розклад → Відмітити тренування:** `SCH_MARK_TRAINING`, `afterCompleteSlot=mark_training` після `SCH_COMPLETE`.
