@@ -1,9 +1,24 @@
 # Передача контексту для нового чату — FIT 3.0
 
-**Дата:** 04.03.2026  
+**Дата оновлення handoff:** 22.03.2026  
 **Проєкт:** Telegram-бот FIT 3.0 (Node.js, Railway, Supabase)  
 **Репо:** https://github.com/AliaGra/Fit_3.0  
-**Остання гілка:** `main` (останній коміт)
+**Гілка:** `main` (перед новим чатом — `git pull`)
+
+---
+
+## Що вставити в перший меседж нового чату (коротко)
+
+```
+Проєкт: FIT 3.0 (Node, Supabase, Railway). Детальний handoff: HANDOFF_NEW_CHAT.md у корені репо.
+
+Останні зміни (березень 2026):
+• Розклад тренера: різний робочий час по днях (work_hours_by_weekday) — міграція supabase_migration_coach_schedule_work_hours_by_weekday.sql має бути виконана в Supabase.
+• Фікс: підпис дня при введенні часу в «Різний час по днях» — WEEKDAY_LONG_UA_MON0 (Пн–Нд), не WEEKDAY_LONG_UA.
+• Документація синхронізована: Бізнес-логіка §4.4.5–4.4.8 (є §4.4.6a «Додати слоти на день»), CALLBACK_FSM_MODULE_MATRIX.md (v1.6 — порядок Node у `lib/router.js`), Зміни_логіки_та_функціоналу.md.
+
+Попередній фокус: body goals + AI body analysis — див. розділи нижче в HANDOFF_NEW_CHAT.md.
+```
 
 ---
 
@@ -17,6 +32,12 @@
 | AI | OpenAI API (gpt-4o-mini), опційно через AI_ENABLED |
 | Модулі | `lib/` — router, coach, registration, profile, training, schedule, user, supabase, constants, bodyGoals, bodyType, bodyMetrics, medicalProfile, medicalFilter тощо |
 | AI-модулі | `lib/ai/` — aiClient, aiPrompts, bodyAnalysis, goalsVsCurrent, planComments, smartReminder, failureAnalysis |
+
+### Callbacks і FSM (канон Node)
+
+- **Файл:** `CALLBACK_FSM_MODULE_MATRIX.md` (**v1.6**, 22.03.2026).
+- **Роутинг:** єдине джерело порядку обробки — **`lib/router.js`**, на початку матриці — розділ **«Node.js: порядок у lib/router.js»** (ранні гілки на кшталт `COACH_BOOK`, `REG_NEW`, `HISTORY_MENU` / `HIST_*` тощо; **Coach + Pricing** — через `Coach`, не через `Registration`).
+- Застарілий псевдокод **GAS / `Router.gs`** у матриці залишено лише з позначкою legacy; на проді його не використовувати.
 
 ---
 
@@ -181,18 +202,19 @@ ADD COLUMN IF NOT EXISTS age_group text;
 1. **AI-аналітика тіла** — після реєстрації учня через invite: коли учень вводить код і заходить в меню, кнопка «AI-аналітика» має показувати збережений текст аналізу.
 2. **Бажані параметри** — після встановлення цілей тренером: у картці учня відображати дельту і терміни.
 3. **Регенерація AI** — після оновлення замірів учня тренером: `User.updateMeasurements` → новий текст зберігається в `ai_generated_content`.
+4. **Розклад / Supabase:** виконана міграція `work_hours_by_weekday`; у боті — «Налаштування» → різний час по днях зберігається; генерація слотів відповідає інтервалам по днях.
 
 ---
 
 ## Розклад тренера (оновлення Mar 2026, `lib/schedule.js`)
 
-- **Налаштування шаблону:** опція **«Різний час по днях тижня»** — `work_hours_by_weekday` у `coach_schedule_settings` (міграція `supabase_migration_coach_schedule_work_hours_by_weekday.sql`); генерація слотів (`generateSlotsForCoach`, `createSlotsForCoachForDate`) бере інтервал через `getWorkHoursForWeekday`. Callbacks: `SCH_SETTINGS_EDIT_WORK:perday`, `SCH_SETTINGS_DAY_HOURS:{0–6}`, `SCH_SETTINGS_WORK_PER_DAY_DONE`; FSM `SCH_SETTINGS_WORK_PER_DAY`.
+- **Налаштування шаблону:** опція **«Різний час по днях тижня»** — `work_hours_by_weekday` у `coach_schedule_settings` (міграція `supabase_migration_coach_schedule_work_hours_by_weekday.sql`); генерація слотів (`generateSlotsForCoach`, `createSlotsForCoachForDate`) бере інтервал через `getWorkHoursForWeekday`. Підпис дня у запиті часу: **`WEEKDAY_LONG_UA_MON0[dayIdx]`** (індекс 0=Пн…6=Нд), не `WEEKDAY_LONG_UA`. Callbacks: `SCH_SETTINGS_EDIT_WORK:perday`, `SCH_SETTINGS_DAY_HOURS:{0–6}`, `SCH_SETTINGS_WORK_PER_DAY_DONE`; FSM `SCH_SETTINGS_WORK_PER_DAY`.
 - **Мій розклад:** лічильники на кнопках фільтрів і списки — **21 день** (`COACH_MY_SCHEDULE_WINDOW_DAYS`, `getCoachMyScheduleWindowStartEndKeys`); без «7 днів» у назвах; **«Всі слоти»** прибрано.
-- **«Вільні слоти»** (тренер): як **«Зайняті слоти»** — лише **текст** (заголовок секції «🕐 Вільні слоти», далі по днях: день тижня + дата, рядки `час — Вільний`), **без інлайн-кнопок по слотах** і без пагінації; рядок **макс. вільних на день**; `showCoach7DaysView` + `filter === 'available'`, `pageSlots = []`. Док.: `README.md` (параграф після таблиці документів), `CALLBACK_FSM_MODULE_MATRIX.md`, §4.4.7 у `Бізнес-логіка_Gym_3_0_v1.1.md`.
+- **«Вільні слоти»** (тренер): як **«Зайняті слоти»** — лише **текст** (заголовок секції «🕐 Вільні слоти», далі по днях: день тижня + дата, рядки `час — Вільний`), **без інлайн-кнопок по слотах** і без пагінації; рядок **макс. вільних на день**; `showCoach7DaysView` + `filter === 'available'`, `pageSlots = []`. Док.: `README.md` (параграф після таблиці документів), `CALLBACK_FSM_MODULE_MATRIX.md` v1.6, §4.4.7 у `Бізнес-логіка_Gym_3_0_v1.1.md`.
 - **Розклад → Відмітити тренування:** `SCH_MARK_TRAINING`, `afterCompleteSlot=mark_training` після `SCH_COMPLETE`.
 - **Чекають підтвердження:** `afterCoachConfirmDecline` після `SCH_CONF` / `SCH_DECLINE`.
 - **Календар тренера:** легенда 🟡 — неділя або відпустка; на кнопці дня — **дд.мм** + день тижня + зайняті в дужках; у тексті календаря — **⏳ На підтвердження:** число або **—**. **Слоти дня** — у тексті рядки для зайнятих / перерви / на підтвердженні; **усі слоти дня** також **інлайн-кнопками** (`showCoachCalendar`, `showCoachDaySlots`).
-- Документація: `Бізнес-логіка_Gym_3_0_v1.1.md` §4.4.7–4.4.8, `CALLBACK_FSM_MODULE_MATRIX.md` (блок 6).
+- Документація: `Бізнес-логіка_Gym_3_0_v1.1.md` §4.4.5–4.4.8 (у т.ч. §4.4.6a «Додати слоти на день»), `CALLBACK_FSM_MODULE_MATRIX.md` v1.6 (блоки «Мій розклад», «Налаштування шаблону», «Розклад»; порядок `router.js` на початку файлу), `Зміни_логіки_та_функціоналу.md`.
 
 ---
 

@@ -1,8 +1,43 @@
 # CALLBACK → FSM STATE → MODULE MATRIX
 
-**Версія:** 1.5  
-**Дата:** 04.03.2026  
-**Призначення:** Повна матриця співвідношень callback_data, FSM станів та обробників
+**Версія:** 1.6  
+**Дата:** 22.03.2026  
+**Призначення:** Матриця співвідношень `callback_data`, FSM-станів та обробників. **Продакшен:** Node.js (`lib/router.js`). Розділ «Історичний еталон GAS» збережено лише для порівняння.
+
+---
+
+## ⚙️ Node.js: порядок у `lib/router.js`
+
+Критично: **перший збіг виграє**. Порядок нижче — фактичний (оновлено за кодом `handleCallback`).
+
+1. `BACK_TO_MAIN` → очищення state, `Menu.show`
+2. `MENU_TRAINING` → підменю тренувань
+3. `AI_ANALYTICS` → `lib/ai/bodyAnalysis` (повний аналіз)
+4. `MENU_SCHEDULE` → підменю розкладу
+5. `MENU_SUBSCRIPTION` → `Subscription.showMenu`
+6. `SUB_ADD`, `SUB_HISTORY`, `SUB_TYPE_UNLIMITED`, `SUB_TYPE_FIXED`, `SUB_BACK` → `Subscription.handleCallback`
+7. Префікси Alias (`ALIAS_*` у константах) → `Alias.handleCallback`
+8. `LIBRARY_VIEW`, `LIBRARY_GROUP`, `LIBRARY_EXERCISE`, `LIBRARY_SEARCH`, `LIBRARY_BACK`, `LIBRARY_TOP` → `Library.handleCallback`
+9. `SCH_S_MY_SCHEDULE` → `Schedule.showStudentMySchedule` (прямий виклик)
+10. `SCH_S_RES`, `SCH_S_RESCHEDULE`, `SCH_S_RESCHEDULE_PICK`, `SCH_S_RES_CALENDAR`, `SCH_S_RES_DAY`, `SCH_S_RES_CANCEL` → `Schedule.handleCallback`
+11. `CANCEL_ACTION` → `Menu.show`
+12. `COACH_BOOK` → `Schedule.startBookStudent` (окрема гілка; не загальний `Schedule.handleCallback` з п.15)
+13. `REG_NEW` → `Registration.showRoleStep` (прямий виклик з router)
+14. `INV_ACC_*`, `INV_AVD_*` (інвайт: зони) → `Coach.handleCallback`
+15. **`Registration.handleCallback`** — лише реєстраційні та пов’язані кроки; якщо повертає `true`, вихід
+16. Префікси медпрофілю `MC_*` → `MedicalProfile.handleCallback`
+17. Префікси планів `PLAN_*` (повний набір у `router.js`) → `TrainingPlan.handleCallback`
+18. **`Coach.handleCallback`** — учні, інвайт, pricing, картка учня, `COACH_*` тощо
+19. **`Profile.handleCallback`**
+20. **`Schedule.handleCallback`** (усі інші `SCH_*`, не перехоплені вище)
+21. **`Training.handleCallback`**
+22. **`Reports.handleCallback`**
+23. `HISTORY_MENU` → `History.showHistoryMenu` (прямий виклик)
+24. Усі `HIST_*` → `History.handleCallback`
+25. **`TRAINING_START`** → учень: `Training.startStudentPlanWorkout`; тренер: `Training.startSelfTraining` (прямий виклик з router, не через `Training.handleCallback`)
+26. Якщо користувач не знайдений → `Registration.start`; інакше `Menu.show`
+
+**Висновок:** не можна визначати модуль лише за префіксом `COACH_` / `SCH_` без урахування цього порядку (наприклад `COACH_BOOK` обробляється раніше за загальний `Schedule`).
 
 ---
 
@@ -28,7 +63,7 @@ const [action, ...params] = callbackData.split(':');
 
 | № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
 |---|---------------|-------------------|---------------------|----------|-----|
-| 1 | `REG_NEW` | `WAITING_FOR_START_CHOICE` | `reg_role` | `Registration.handleCallback()` | Вибір "Нова реєстрація" |
+| 1 | `REG_NEW` | `WAITING_FOR_START_CHOICE` | `reg_role` | **`router.js` → `Registration.showRoleStep`** (не через `Registration.handleCallback`) | Вибір "Нова реєстрація" |
 | 2 | `REG_INVITE` | `WAITING_FOR_START_CHOICE` | `reg_invite_input` | `Registration.handleCallback()` | Вибір "Ввести код" |
 | 3 | `REG_ROLE_STUDENT` | `reg_role` | `reg_first_name` | `Registration.handleCallback()` | Вибір ролі "Учень" |
 | 4 | `REG_ROLE_COACH` | `reg_role` | `reg_first_name` | `Registration.handleCallback()` | Вибір ролі "Тренер" |
@@ -119,7 +154,7 @@ const [action, ...params] = callbackData.split(':');
 
 | № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
 |---|---------------|-------------------|---------------------|----------|-----|
-| 21 | `TRAINING_START` | `null` (Головне меню) | Показ режимів | `Training.handleCallback()` | Почати тренування |
+| 21 | `TRAINING_START` | `null` (Головне меню) | Залежить від ролі | **`router.js` → `Training.startStudentPlanWorkout` / `Training.startSelfTraining`** (не `Training.handleCallback`) | Почати тренування з головного меню |
 | 22 | `TRAINING_MODE_SINGLE` | `null` | `training_group` | `Training.handleCallback()` | Одинарна вправа |
 | 23 | `TRAINING_MODE_CIRCUIT` | `null` | `training_circuit_build` | `Training.handleCallback()` | Круговий сет |
 | 24 | `TRAINING_FINISH` | Будь-який training_* | `null` | `Training.handleCallback()` | Завершити тренування |
@@ -172,13 +207,7 @@ State.set(coachId, {
 });
 Відмінності від Student Mode:
 ПараметрStudent ModeSELF ModeChatIDStudent ChatIDCoach ChatIDStudentIDStudent ChatIDNULL або "SELF"CoachIDCoach ChatIDCoach ChatID (той самий)Callback префіксTRAINING_TRAINING_SELF_ або SELF_FSM State префіксtraining_training_self_TrainingId форматtimestampSELF_timestamp
-Приклад роутингу в Router:
-javascript// Додати в handleCallback_ функцію:
-
-// 3B. Training SELF Mode
-if (action.startsWith('TRAINING_SELF_') || action.startsWith('SELF_')) {
-  return Training.handleCallback(chatId, action, params);
-}
+**Node:** префікси `TRAINING_*`, `SELF_*`, `GROUP:`, `EXERCISE:` тощо потрапляють у **`Training.handleCallback`** після проходження гілок `router.js` (див. розділ «Node.js: порядок у lib/router.js»).
 
 📊 ОНОВЛЕНА СТАТИСТИКА CALLBACKS
 ┌────────────────────────────┬─────────┐
@@ -204,55 +233,23 @@ if (action.startsWith('TRAINING_SELF_') || action.startsWith('SELF_')) {
 │ ВСЬОГО FSM СТАНІВ          │ 105+    │ ← Було 92+
 └────────────────────────────┴─────────┘
 
-🔍 ОНОВЛЕННЯ ЗМІСТУ ДОКУМЕНТА
-Поточний зміст (рядки 8-23):
-markdown## 📋 ЗМІСТ
-
-- БЛОК 1: РЕЄСТРАЦІЯ (REGISTRATION MODULE)
-- БЛОК 2: ПРОФІЛЬ (PROFILE MODULE)
-- БЛОК 3: ТРЕНУВАННЯ (TRAINING MODULE)
-- БЛОК 4: ІСТОРІЯ (HISTORY MODULE)
-- БЛОК 5: ТРЕНЕР-УЧЕНЬ (COACH-STUDENT MODULE)
-- БЛОК 6: РОЗКЛАД - ТРЕНЕР (SCHEDULE - COACH)
-- БЛОК 7: РОЗКЛАД - УЧЕНЬ (SCHEDULE - STUDENT)
-- БЛОК 8: МЕНЮ ТА НАВІГАЦІЯ
-ОНОВЛЕНИЙ зміст (додати після БЛОК 3):
-markdown## 📋 ЗМІСТ
-
-- БЛОК 1: РЕЄСТРАЦІЯ (REGISTRATION MODULE)
-- БЛОК 2: ПРОФІЛЬ (PROFILE MODULE)
-- БЛОК 3: ТРЕНУВАННЯ (TRAINING MODULE)
-- **БЛОК 3B: ТРЕНУВАННЯ - SELF РЕЖИМ (TRAINING MODULE - SELF MODE)** ← NEW!
-- БЛОК 4: ІСТОРІЯ (HISTORY MODULE)
-- БЛОК 5: ТРЕНЕР-УЧЕНЬ (COACH-STUDENT MODULE)
-- БЛОК 6: РОЗКЛАД - ТРЕНЕР (SCHEDULE - COACH)
-- БЛОК 7: РОЗКЛАД - УЧЕНЬ (SCHEDULE - STUDENT)
-- БЛОК 8: МЕНЮ ТА НАВІГАЦІЯ
-
-
 =======================================================================================================================
 
-## 🟡 БЛОК 4: ІСТОРІЯ (HISTORY MODULE)
+## 🟡 БЛОК 4: ІСТОРІЯ — застарілий префікс `HISTORY_*` (legacy)
 
-### Таблиця 4.1: History Callbacks
+> **Node / FIT 3.0:** у `lib/training.js` **немає** обробників `HISTORY_*`. Актуальна історія тренувань — префікси **`HIST_*`**, callback **`HISTORY_MENU`**, модуль **`lib/history.js`**, порядок виклику в **`lib/router.js`** (п. 23–24 у розділі «Node.js: порядок»). Таблиці нижче збережено як опис старого GAS-флоу; для імплементації та тестів використовуйте **розділ «📗 БЛОК: ІСТОРІЯ ТРЕНУВАНЬ»** у цьому ж файлі.
 
-| № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
-|---|---------------|-------------------|---------------------|----------|-----|
-| 31 | `HISTORY_MENU` | `null` | Показ фільтрів | `Training.handleCallback()` | Відкрити історію |
-| 32 | `HISTORY_ALL` | `null` | Показ підфільтрів | `Training.handleCallback()` | Всі тренування |
-| 33 | `HISTORY_BY_GROUP` | `null` | Показ груп | `Training.handleCallback()` | За групою м'язів |
-| 34 | `HISTORY_BY_EXERCISE` | `null` | Показ груп → вправ | `Training.handleCallback()` | За вправою |
-| 35 | `HISTORY_CURRENT` | Після фільтру | Показ поточного | `Training.handleCallback()` | Поточне тренування |
-| 36 | `HISTORY_PREVIOUS` | Після фільтру | Показ попереднього | `Training.handleCallback()` | Попереднє тренування |
-| 37 | `HISTORY_LAST_N` | Після фільтру | `history_input_n` | `Training.handleCallback()` | Останні N тренувань |
-| 38 | `HISTORY_GROUP:{groupId}` | `HISTORY_BY_GROUP` | Показ підфільтрів | `Training.handleCallback()` | Вибір конкретної групи |
-| 39 | `HISTORY_EXERCISE:{exId}` | `HISTORY_BY_EXERCISE` | Показ підфільтрів | `Training.handleCallback()` | Вибір конкретної вправи |
+### Таблиця 4.1 (legacy): History Callbacks — не використовувати в Node
 
-### Таблиця 4.2: History Text Input States
+| № | Callback_data | Примітка |
+|---|---------------|----------|
+| 31–39 | `HISTORY_*` | Заміна в Node: `HIST_FILTER:*`, `HIST_GROUP:*`, `HIST_VIEW:*`, тощо — див. розділ з `lib/history.js` |
 
-| № | FSM State | Очікує | Валідація | Наступний State | Обробник |
-|---|-----------|--------|-----------|-----------------|----------|
-| 22 | `history_input_n` | Число | 1-100 | Показ N тренувань | `Training.handleTextMessage()` | 
+### Таблиця 4.2 (legacy): `history_input_n`
+
+| № | FSM State | Примітка |
+|---|-----------|----------|
+| 22 | `history_input_n` | У Node: **`hist_count_input`** + `History.validateHistCount` (`lib/router.js`, `lib/history.js`) |
 
 ---
 
@@ -262,12 +259,12 @@ markdown## 📋 ЗМІСТ
 
 | № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
 |---|---------------|-------------------|---------------------|----------|-----|
-| 40 | `COACH_STUDENTS` | `null` (Coach Menu) | Показ списку | `Registration.handleCallback()` | Список учнів |
-| 41 | `COACH_ADD_STUDENT` | `null` (Coach Menu) | `coach_add_student_name` | `Registration.handleCallback()` | Додати учня |
-| 42 | `VIEW_STUDENT:{chatId}` | `null` | Показ картки | `Registration.handleCallback()` | Картка учня |
+| 40 | `COACH_STUDENTS` | `null` (Coach Menu) | Показ списку | **`Coach.handleCallback()`** | Список учнів |
+| 41 | `COACH_ADD_STUDENT` | `null` (Coach Menu) | `coach_add_student_name` | **`Coach.handleCallback()`** | Додати учня |
+| 42 | `VIEW_STUDENT:{chatId}` | `null` | Показ картки | **`Coach.handleCallback()`** | Картка учня |
 | 43 | `COACH_TRAIN:{chatId}` | `null` | `training_group` | `Training.handleCallback()` | Тренувати учня (Coach Mode) |
-| 44 | `COACH_HISTORY:{chatId}` | `null` | Показ фільтрів | `Training.handleCallback()` | Історія учня |
-| 45 | `COACH_BOOK:{chatId}` | `null` | Показ слотів | `Schedule.handleCallback()` | Записати учня |
+| 44 | `COACH_HISTORY:{chatId}` | `null` | меню історії (`hist_menu`) | **`Coach.handleCallback()`** → `History.showHistoryMenu` | Історія учня |
+| 45 | `COACH_BOOK:{chatId}` | `null` | старт запису | **`router.js` → `Schedule.startBookStudent`** (рання гілка; див. порядок router) | Записати учня |
 | 46 | `COACH_PROFILE:{chatId}` | `null` | Показ профілю | `Profile.handleCallback()` | Профіль учня |
 | 46h | `COACH_BODY_GOALS:{chatId}` | `null` (картка учня) | `coach_body_goals_weight` | `Coach.handleCallback()` | Бажані параметри учня |
 | 46i | `COACH_BODY_GOALS_SKIP_WEIGHT` … `COACH_BODY_GOALS_SKIP_CHEST` | `coach_body_goals_*` | Наступний крок або збереження | `Coach.handleCallback()` | Пропустити поле |
@@ -297,23 +294,23 @@ markdown## 📋 ЗМІСТ
 
 | № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
 |---|---------------|-------------------|---------------------|----------|-----|
-| 46a | `PRICING_SET_DEFAULT` | `null` (Мої учні) | `pricing_type_select` | `Registration.handleCallback()` | Ввести вартість (тариф за замовчуванням) |
-| 46b | `PRICING_SET_INDIVIDUAL` | `null` (Мої учні) | `pricing_select_student` | `Registration.handleCallback()` | Індивідуальна вартість |
-| 46c | `PRICING_CHANGE` | `null` (Мої учні) | `pricing_type_select` | `Registration.handleCallback()` | Змінити вартість |
-| 46d | `PRICING_TYPE_PERSONAL` | `pricing_type_select` | `pricing_input_amount` | `Registration.handleCallback()` | Тип: персональне |
-| 46e | `PRICING_TYPE_SPLIT` | `pricing_type_select` | `pricing_input_amount` | `Registration.handleCallback()` | Тип: спліт |
-| 46f | `PRICING_TYPE_TRIO` | `pricing_type_select` | `pricing_input_amount` | `Registration.handleCallback()` | Тип: тріо |
-| 46g | `PRICING_STUDENT:{chatId}` | `pricing_select_student` | `pricing_type_select` | `Registration.handleCallback()` | Вибір учня (індивідуальна вартість) |
+| 46a | `PRICING_SET_DEFAULT` | `null` (Мої учні) | `pricing_type_select` | **`Coach.handleCallback()`** | Ввести вартість (тариф за замовчуванням) |
+| 46b | `PRICING_SET_INDIVIDUAL` | `null` (Мої учні) | `pricing_select_student` | **`Coach.handleCallback()`** | Індивідуальна вартість |
+| 46c | `PRICING_CHANGE` | `null` (Мої учні) | `pricing_type_select` | **`Coach.handleCallback()`** | Змінити вартість |
+| 46d | `PRICING_TYPE_PERSONAL` | `pricing_type_select` | `pricing_input_amount` | **`Coach.handleCallback()`** | Тип: персональне |
+| 46e | `PRICING_TYPE_SPLIT` | `pricing_type_select` | `pricing_input_amount` | **`Coach.handleCallback()`** | Тип: спліт |
+| 46f | `PRICING_TYPE_TRIO` | `pricing_type_select` | `pricing_input_amount` | **`Coach.handleCallback()`** | Тип: тріо |
+| 46g | `PRICING_STUDENT:{chatId}` | `pricing_select_student` | `pricing_type_select` | **`Coach.handleCallback()`** | Вибір учня (індивідуальна вартість) |
 
 ### Таблиця 5.4: Pricing Text Input States
 
 | № | FSM State | Очікує | Валідація | Наступний State | Обробник |
 |---|-----------|--------|-----------|-----------------|----------|
-| 23a | `pricing_type_select` | — | Callback (тип) | `pricing_input_amount` | `Registration.handleCallback()` |
-| 23b | `pricing_input_amount` | Ціле число (UAH) | PRICE_MIN–PRICE_MAX | `null` (фініш, запис у Pricing) | `Registration.handleTextMessage()` |
-| 23c | `pricing_select_student` | — | Callback PRICING_STUDENT:chatId | `pricing_type_select` | `Registration.handleCallback()` |
+| 23a | `pricing_type_select` | — | Callback (тип) | `pricing_input_amount` | **`Coach.handleCallback()`** |
+| 23b | `pricing_input_amount` | Ціле число (UAH) | PRICE_MIN–PRICE_MAX | `null` (фініш, запис у Pricing) | **`Coach.handleTextMessage()`** (`router.js`: кроки `pricing_*` → Coach) |
+| 23c | `pricing_select_student` | — | Callback PRICING_STUDENT:chatId | `pricing_type_select` | **`Coach.handleCallback()`** |
 
-**Примітка:** Дані FSM (coachId, studentId, тип тренування) зберігаються в State; callback_data для FSM-кроків не містить ID (VETO 1). Для простих операцій дозволено `PRICING_STUDENT:{chatId}`.
+**Примітка:** Дані FSM (coachId, studentId, тип тренування) зберігаються в State; callback_data для FSM-кроків не містить ID (VETO 1). Для простих операцій дозволено `PRICING_STUDENT:{chatId}`. **У Node** усю цінову логіку веде **`Coach`**, не `Registration`.
 
 ---
 
@@ -490,16 +487,28 @@ markdown## 📋 ЗМІСТ
 - **«Зайняті слоти» (фільтр `booked`):** без кнопок «Скасувати»/«Перенести»; показ **макс. зайнятих на день**; відмітка виконання — **«Розклад» → «Відмітити тренування»**.
 - **«Вільні слоти» (фільтр `available`):** лише **текстовий список** у тій самій компоновці, що й «Зайняті» — заголовки **день тижня + дата (дд.мм)**, далі рядки **час — Вільний**; **немає інлайн-кнопок по слотах** і **немає пагінації**; показ **макс. вільних на день**; дії зі слотом — через **Календар** або інші фільтри «Мій розклад». Реалізація: `showCoach7DaysView` + `filter === 'available'`, `pageSlots = []`.
 - **«Чекають підтвердження»:** після `SCH_CONF` / `SCH_DECLINE` — залишитись у перегляді (`afterCoachConfirmDecline`, `showCoach7DaysView(..., 'requested', 0)`).
-- **Підказки (viewHint):** прибрані для зайнятих і резерву (історично)
-- **Формат дати:** у `showCoachDaySlots` рік **не** показується (`noYear` у `formatSlotDateTime`)
+- **Підказки (viewHint):** не показуються для фільтрів **зайняті**, **вільні**, **мої перерви** (`showCoach7DaysView`); для **вільних** також без довгої підказки про дії зі слотом.
+- **`showCoachDaySlots`:** заголовок дня — дата + день тижня **без року**; у **тексті** — рядки лише для REQUESTED / BOOKED / RESERVED; далі «Обери слот:»; на **інлайн-кнопках** — **`formatSlotTimeOnly`** (час без дати), не `formatSlotDateTime`.
 - **Перерва:** після `setSlotReserve` — пауза **1.5 с** перед оновленням
+
+### Налаштування шаблону слотів (callback / FSM, `lib/schedule.js`)
+
+| Callback | Призначення |
+|----------|-------------|
+| `SCH_SETTINGS_EDIT_WORK:perday` | Відкрити екран **різний час по днях** (`showSettingsWorkPerDay`, `handleSettingsWorkPerDayOpen`) |
+| `SCH_SETTINGS_DAY_HOURS:{0–6}` | Обрати день (індекс як **Пн=0 … Нд=6**) → введення інтервалу текстом |
+| `SCH_SETTINGS_WORK_PER_DAY_DONE` | Повернутися до підсумку налаштувань (`handleSettingsWorkPerDayDone`) |
+| FSM `SCH_SETTINGS_WORK_PER_DAY` | Крок з кнопками днів + очікування вводу часу для `awaitingWorkTimeForDay` |
+
+**Допоміжні функції:** `getWorkHoursForWeekday`, `buildWorkHoursMapFromSettings`, `padHHMM`; для підпису дня при вводі часу — **`WEEKDAY_LONG_UA_MON0`** (не плутати з `WEEKDAY_LONG_UA`, де неділя=0 як у `Date.getDay()`).
 
 ### Зміни UX — Меню «Розклад» (тренер)
 
 - «📌 Створити резерв» → **«🍔 Створити перерву»**
 - «🏖 Відпустка» → **«🏖 Створити відпустку»**
 - **«✔️ Відмітити тренування»** — `SCH_MARK_TRAINING` / `SCH_MARK_TRAINING:{page}`; після `SCH_COMPLETE` — `afterCompleteSlot=mark_training` → знову екран відмітки.
-- **Календар тренера:** легенда 🟡 — **неділя або відпустка** (текст підказки); неділя на кнопці дня — **жовтий** емодзі; календар відпустки: неділя 🟡.
+- **Календар тренера** (`showCoachCalendar`): у тексті — **⏳ На підтвердження:** кількість REQUESTED у вікні 21 день або **—**; кнопки днів — **дд.мм + день тижня** (`formatDateShortWithWeekday`) + зайняті в дужках; легенда емодзі: 🟢 сьогодні; 🟡 неділя / відпустка / вихідний за шаблоном; ⬜ немає слотів.
+- **Додати слоти на день:** `SCH_ADD_SLOTS_FOR_DAY` → `showAddSlotsForDayCalendar`; `SCH_ADD_SLOTS_DAY_PICK:{dateKey}` → `createSlotsForCoachForDate` (шаблон 4.4.5 у бізнес-логіці).
 
 ### Зміни UX — Меню «Розклад» (учень)
 
@@ -567,53 +576,43 @@ markdown## 📋 ЗМІСТ
 
 ---
 
-## 🔍 ПРАВИЛА РОУТИНГУ В ROUTER.GS
+## 🔍 Роутинг callbacks
 
-### Алгоритм розподілу callbacks:
+### Актуально: `lib/router.js` (Node.js)
+
+Повний порядок і особливі гілки (`COACH_BOOK`, `REG_NEW`, `TRAINING_START`, `HISTORY_MENU`, `HIST_*`) — у розділі **«Node.js: порядок у lib/router.js»** вище. Текстовий ввід маршрутизується в **`handleTextMessage`** у тому ж файлі (кроки `reg_*`, `coach_*`, `invite_*`, `pricing_*`, `profile_*`, `sch_*`, `training_*`, `hist_count_input`, тощо).
+
+### Історичний еталон: Google Apps Script (`Router.gs`)
+
+Нижче — спрощений **старий** псевдокод для GAS (без змінних гілок Node). **Не використовувати** як опис продакшен FIT 3.0 на Railway.
 
 ```javascript
+// LEGACY GAS — не відповідає lib/router.js
 function handleCallback_(chatId, callbackData) {
   const [action, ...params] = callbackData.split(':');
-  
-  // 1. Registration
   if (action.startsWith('REG_')) {
     return Registration.handleCallback(chatId, action, params);
   }
-  
-  // 2. Profile
   if (action.startsWith('PROFILE_')) {
     return Profile.handleCallback(chatId, action, params);
   }
-  
-  // 3. Training & History
-  if (action.startsWith('TRAINING_') || action.startsWith('HISTORY_') || 
+  if (action.startsWith('TRAINING_') || action.startsWith('HISTORY_') ||
       action.startsWith('GROUP:') || action.startsWith('EXERCISE:') ||
       action.startsWith('CIRCUIT_') || action.startsWith('LIBRARY_')) {
     return Training.handleCallback(chatId, action, params);
   }
-  
-  // 4. Coach-Student + Pricing (Вартість тренувань)
   if (action.startsWith('COACH_') || action.startsWith('VIEW_STUDENT:') || action.startsWith('PRICING_')) {
-    // Registration: учні, картка учня, PRICING_SET_DEFAULT, PRICING_SET_INDIVIDUAL, PRICING_CHANGE, PRICING_TYPE_*, PRICING_STUDENT:{chatId}
     return Registration.handleCallback(chatId, action, params);
   }
-  
-  // 5. Schedule
   if (action.startsWith('SCH_')) {
     return Schedule.handleCallback(chatId, action, params);
   }
-  
-  // 6. Navigation
   if (action.startsWith('BACK_') || action === 'CANCEL_ACTION') {
     return handleNavigation_(chatId, action, params);
   }
-  
-  // 7. City selection
   if (action === 'CITY') {
     return Registration.handleCallback(chatId, action, params);
   }
-  
-  Logger.log('Unknown callback: ' + callbackData);
 }
 ```
 
@@ -646,8 +645,9 @@ function handleCallback_(chatId, callbackData) {
 ## 🎯 ВИКОРИСТАННЯ
 
 **Для розробників:**
+- Додавляючи callback, перевіряти **порядок у `lib/router.js`** і відповідний модуль (`Coach` / `Schedule` / `Training` / `History` тощо)
 - Перевіряти цю таблицю при додаванні нових callbacks
-- Дотримуватись єдиного формату `ACTION:param1_param2`
+- Дотримуватись єдиного формату `ACTION:param1:param2`
 - Оновлювати матрицю при змінах
 
 **Для тестування:**
