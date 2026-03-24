@@ -30,3 +30,8 @@ WHERE status = 'AVAILABLE' AND student_id IS NOT NULL;
 
 -- --- 5) Відпустка: учні не бачать слоти на дні з coach_vacation_days.
 -- SELECT * FROM coach_vacation_days WHERE coach_id = '797936608';
+
+-- --- 6) Якщо колонка status — text і значення в іншому регістрі (available замість AVAILABLE),
+-- бот тепер нормалізує це в коді; за бажанням вирівняй у БД:
+-- UPDATE workout_schedule SET status = UPPER(TRIM(status)) WHERE status IS NOT NULL;
+-- (для enum перевір тип колонки в Supabase перед виконанням.)
