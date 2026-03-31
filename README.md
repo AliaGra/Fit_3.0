@@ -23,7 +23,7 @@ Telegram-бот на Node.js для керування тренуваннями:
 ## Структура проєкту
 
 ```
-├── index.js              # Точка входу: HTTP-сервер, /webhook, /cron/reminders, /cron/plan-revision, /cron/subscription-reminders
+├── index.js              # Точка входу: HTTP-сервер, /webhook, /admin_webhook, /cron/reminders, /cron/plan-revision, /cron/subscription-reminders
 ├── package.json
 ├── lib/
 │   ├── router.js         # Маршрутизація callback та команд

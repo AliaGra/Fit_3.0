@@ -366,6 +366,24 @@
   - **Файли**: `lib/menu.js`, `lib/registration.js`
   - **Commit**: 3855254
 
+- (status: ready) 2026-03-31 — Адмін-бот: блокування/видалення користувачів, керування інвайтами, аудит
+  - **Scope**: адмін / тренер / учень
+  - **Що змінилось**:
+    - Додано окремий адмін-бот (другий webhook `/admin_webhook`), який реагує лише на `ADMIN_CHAT_ID`.
+    - Додано поле `users.is_blocked` (блокування без видалення) та таблицю `admin_log` (аудит дій адміна).
+    - Основний бот перевіряє `is_blocked` на кожен update та показує повідомлення з підтримкою `https://t.me/FitHad_helpbot`.
+    - Адмін-бот має розділи: статистика, користувачі (block/unblock/delete з підтвердженням), інвайти (видалити один/всі), лог дій.
+  - **Файли**:
+    - `index.js`, `lib/router.js`
+    - `lib/adminBot.js`, `lib/adminTelegram.js`, `lib/adminHelpers.js`
+    - `lib/supabase.js`
+    - `supabase_migration_users_is_blocked.sql`, `supabase_migration_admin_log.sql`
+  - **Тест-план (мінімум)**:
+    - Встановити env: `ADMIN_BOT_TOKEN`, `ADMIN_CHAT_ID`; налаштувати webhook адмін-бота на `/admin_webhook`.
+    - Написати адмін-боту: відкривається меню, працюють списки/підтвердження.
+    - Заблокувати користувача: основний бот більше не обробляє його дії та показує повідомлення підтримки.
+  - **Commit**: pending
+
 ---
 
 ## Синхронізація з документацією

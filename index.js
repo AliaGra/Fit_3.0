@@ -23,6 +23,7 @@ function dedupe(updateId) {
 }
 
 const router = require('./lib/router');
+const adminBot = require('./lib/adminBot');
 
 const server = http.createServer((req, res) => {
   if (req.method === 'GET') {
@@ -120,12 +121,13 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.method !== 'POST' || req.url !== '/webhook') {
+  if (req.method !== 'POST' || (req.url !== '/webhook' && req.url !== '/admin_webhook')) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
     return;
   }
 
+  const isAdminWebhook = req.url === '/admin_webhook';
   let body = '';
   req.on('data', (chunk) => { body += chunk; });
   req.on('end', () => {
@@ -145,8 +147,9 @@ const server = http.createServer((req, res) => {
       return;
     }
     console.log('Webhook received update_id=' + updateId);
-    router.route(update).catch((err) => {
-      console.error('route error', err.message);
+    const handler = isAdminWebhook ? adminBot.route : router.route;
+    handler(update).catch((err) => {
+      console.error(isAdminWebhook ? 'admin route error' : 'route error', err.message);
     });
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('ok');
