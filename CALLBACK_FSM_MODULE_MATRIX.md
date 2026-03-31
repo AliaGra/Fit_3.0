@@ -22,7 +22,9 @@
 10. `SCH_S_RES`, `SCH_S_RESCHEDULE`, `SCH_S_RESCHEDULE_PICK`, `SCH_S_RES_CALENDAR`, `SCH_S_RES_DAY`, `SCH_S_RES_CANCEL` → `Schedule.handleCallback`
 11. `CANCEL_ACTION` → `Menu.show`
 12. `COACH_BOOK` → `Schedule.startBookStudent` (окрема гілка; не загальний `Schedule.handleCallback` з п.15)
-13. `REG_NEW` → `Registration.showRoleStep` (прямий виклик з router)
+13. `REG_NEW` → `Registration.handleCallback` (тестовий режим: показ повідомлення про closed beta + посилання на підтримку)
+13a. `DEV_CONTACT_MENU` → `Menu.showDeveloperContactMenu`
+13b. `DEV_CONTACT_OFFER` → `Menu.sendOfferText` (показ `OFERTA.md`)
 14. `INV_ACC_*`, `INV_AVD_*` (інвайт: зони) → `Coach.handleCallback`
 15. **`Registration.handleCallback`** — лише реєстраційні та пов’язані кроки; якщо повертає `true`, вихід
 16. Префікси медпрофілю `MC_*` → `MedicalProfile.handleCallback`
@@ -63,7 +65,7 @@ const [action, ...params] = callbackData.split(':');
 
 | № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
 |---|---------------|-------------------|---------------------|----------|-----|
-| 1 | `REG_NEW` | `WAITING_FOR_START_CHOICE` | `reg_role` | **`router.js` → `Registration.showRoleStep`** (не через `Registration.handleCallback`) | Вибір "Нова реєстрація" |
+| 1 | `REG_NEW` | `WAITING_FOR_START_CHOICE` | — | `Registration.handleCallback()` | Тестовий режим: "Нова реєстрація" заблокована (closed beta), показати повідомлення + посилання на підтримку |
 | 2 | `REG_INVITE` | `WAITING_FOR_START_CHOICE` | `reg_invite_input` | `Registration.handleCallback()` | Вибір "Ввести код" |
 | 3 | `REG_ROLE_STUDENT` | `reg_role` | `reg_first_name` | `Registration.handleCallback()` | Вибір ролі "Учень" |
 | 4 | `REG_ROLE_COACH` | `reg_role` | `reg_first_name` | `Registration.handleCallback()` | Вибір ролі "Тренер" |
@@ -87,12 +89,15 @@ const [action, ...params] = callbackData.split(':');
 | 21a | `REG_BODY_GOALS_SKIP` | `reg_body_goals_choice` | `null` (finishRegistration) | `Registration.handleCallback()` | Пропустити бажані параметри |
 | 21b | `REG_BODY_GOALS_FILL` | `reg_body_goals_choice` | `reg_body_goals_weight` | `Registration.handleCallback()` | Заповнити бажані параметри |
 | 21c | `REG_BODY_GOALS_SKIP_WEIGHT` … `REG_BODY_GOALS_SKIP_CHEST` | `reg_body_goals_*` | Наступний крок або saveRegBodyGoalsAndFinish | `Registration.handleCallback()` | Пропустити поле |
+| 22 | `REG_INVITE_OFFER_READ` | `reg_invite_offer` | `reg_invite_offer` | `Registration.handleCallback()` | Показати текст оферти з `OFERTA.md` + кнопки виходу (написати розробнику / головне меню) |
+| 23 | `REG_INVITE_OFFER_ACCEPT` | `reg_invite_offer` | `null` | `Registration.handleCallback()` | Акцепт оферти → активація інвайту (activateInvite/linkCoachByInviteCode) |
+| 24 | `REG_INVITE_OFFER_DECLINE` | `reg_invite_offer` | `WAITING_FOR_START_CHOICE` | `Registration.handleCallback()` | Відмова → “Доступ не активовано.” → повернення на старт |
 
 ### Таблиця 1.2: Registration Text Input States
 
 | № | FSM State | Очікує | Валідація | Наступний State | Обробник |
 |---|-----------|--------|-----------|-----------------|----------|
-| 1 | `reg_invite_input` | Текст (код) | `startsWith('INVITE_')` | `null` (фініш) | `Registration.handleTextMessage()` |
+| 1 | `reg_invite_input` | Текст (код) | `startsWith('INVITE_')` | `reg_invite_offer` (гейт оферти) | `Registration.handleTextMessage()` |
 | 2 | `reg_first_name` | Текст (ім'я) | Не порожнє, 2-30 символів | `reg_last_name` або `reg_continue` | `Registration.handleTextMessage()` |
 | 3 | `reg_last_name` | Текст (прізвище) | Не порожнє, 2-50 символів | `reg_city` | `Registration.handleTextMessage()` |
 | 4 | `reg_city` | Текст (місто) | Не порожнє, 2-50 символів | `reg_gender` (student) або `reg_instagram` (coach) | `Registration.handleTextMessage()` |
