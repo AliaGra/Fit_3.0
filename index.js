@@ -9,9 +9,10 @@ const MAX_DEDUPE = 5000;
 const seenUpdates = new Set();
 let dedupeQueue = [];
 
-function dedupe(updateId) {
+function dedupe(updateId, scope) {
   if (updateId == null) return false;
-  const key = 'UPD_' + String(updateId);
+  const sc = scope ? String(scope) : 'MAIN';
+  const key = sc + '_UPD_' + String(updateId);
   if (seenUpdates.has(key)) return true;
   seenUpdates.add(key);
   dedupeQueue.push(key);
@@ -141,7 +142,7 @@ const server = http.createServer((req, res) => {
       return;
     }
     const updateId = update.update_id;
-    if (dedupe(updateId)) {
+    if (dedupe(updateId, isAdminWebhook ? 'ADMIN' : 'MAIN')) {
       res.writeHead(200, { 'Content-Type': 'text/plain' });
       res.end('ok');
       return;
