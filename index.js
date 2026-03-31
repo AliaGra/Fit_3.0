@@ -147,7 +147,7 @@ const server = http.createServer((req, res) => {
       res.end('ok');
       return;
     }
-    console.log('Webhook received update_id=' + updateId);
+    console.log((isAdminWebhook ? 'Admin webhook' : 'Webhook') + ' received update_id=' + updateId);
     const handler = isAdminWebhook ? adminBot.route : router.route;
     handler(update).catch((err) => {
       console.error(isAdminWebhook ? 'admin route error' : 'route error', err.message);
@@ -160,10 +160,25 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log('Server listening on port', PORT);
   const hasBot = !!process.env.BOT_TOKEN;
+  const hasAdminBot = !!process.env.ADMIN_BOT_TOKEN;
+  const hasAdminChat = !!process.env.ADMIN_CHAT_ID;
   const hasSupabaseUrl = !!process.env.SUPABASE_URL;
   const hasSupabaseKey = !!process.env.SUPABASE_ANON_KEY;
   const railwayEnv = typeof process.env.RAILWAY_ENVIRONMENT !== 'undefined';
-  console.log('Env: BOT_TOKEN=' + (hasBot ? 'ok' : 'MISSING') + ' SUPABASE_URL=' + (hasSupabaseUrl ? 'ok' : 'MISSING') + ' SUPABASE_ANON_KEY=' + (hasSupabaseKey ? 'ok' : 'MISSING') + ' RAILWAY_ENV=' + (railwayEnv ? 'yes' : 'no'));
+  console.log(
+    'Env: BOT_TOKEN=' +
+      (hasBot ? 'ok' : 'MISSING') +
+      ' ADMIN_BOT_TOKEN=' +
+      (hasAdminBot ? 'ok' : 'MISSING') +
+      ' ADMIN_CHAT_ID=' +
+      (hasAdminChat ? 'ok' : 'MISSING') +
+      ' SUPABASE_URL=' +
+      (hasSupabaseUrl ? 'ok' : 'MISSING') +
+      ' SUPABASE_ANON_KEY=' +
+      (hasSupabaseKey ? 'ok' : 'MISSING') +
+      ' RAILWAY_ENV=' +
+      (railwayEnv ? 'yes' : 'no')
+  );
   if (!hasBot || !hasSupabaseUrl || !hasSupabaseKey) {
     console.error('Set BOT_TOKEN, SUPABASE_URL, SUPABASE_ANON_KEY in Railway → Fit_3.0 → Variables, then Redeploy');
   }
