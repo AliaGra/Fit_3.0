@@ -25,6 +25,7 @@ function dedupe(updateId, scope) {
 
 const router = require('./lib/router');
 const adminBot = require('./lib/adminBot');
+const helpBot = require('./lib/helpBot');
 
 const server = http.createServer((req, res) => {
   if (req.method === 'GET') {
@@ -122,13 +123,14 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.method !== 'POST' || (req.url !== '/webhook' && req.url !== '/admin_webhook')) {
+  if (req.method !== 'POST' || (req.url !== '/webhook' && req.url !== '/admin_webhook' && req.url !== '/help_webhook')) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
     return;
   }
 
   const isAdminWebhook = req.url === '/admin_webhook';
+  const isHelpWebhook = req.url === '/help_webhook';
   let body = '';
   req.on('data', (chunk) => { body += chunk; });
   req.on('end', () => {
@@ -142,15 +144,17 @@ const server = http.createServer((req, res) => {
       return;
     }
     const updateId = update.update_id;
-    if (dedupe(updateId, isAdminWebhook ? 'ADMIN' : 'MAIN')) {
+    const scope = isAdminWebhook ? 'ADMIN' : (isHelpWebhook ? 'HELP' : 'MAIN');
+    if (dedupe(updateId, scope)) {
       res.writeHead(200, { 'Content-Type': 'text/plain' });
       res.end('ok');
       return;
     }
-    console.log((isAdminWebhook ? 'Admin webhook' : 'Webhook') + ' received update_id=' + updateId);
-    const handler = isAdminWebhook ? adminBot.route : router.route;
+    const tag = isAdminWebhook ? 'Admin webhook' : (isHelpWebhook ? 'Help webhook' : 'Webhook');
+    console.log(tag + ' received update_id=' + updateId);
+    const handler = isAdminWebhook ? adminBot.route : (isHelpWebhook ? helpBot.route : router.route);
     handler(update).catch((err) => {
-      console.error(isAdminWebhook ? 'admin route error' : 'route error', err.message);
+      console.error(isAdminWebhook ? 'admin route error' : (isHelpWebhook ? 'help route error' : 'route error'), err.message);
     });
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('ok');
@@ -162,6 +166,8 @@ server.listen(PORT, () => {
   const hasBot = !!process.env.BOT_TOKEN;
   const hasAdminBot = !!process.env.ADMIN_BOT_TOKEN;
   const hasAdminChat = !!process.env.ADMIN_CHAT_ID;
+  const hasHelpBot = !!process.env.HELP_BOT_TOKEN;
+  const hasHelpOp = !!process.env.HELP_OPERATOR_CHAT_ID;
   const hasSupabaseUrl = !!process.env.SUPABASE_URL;
   const hasSupabaseKey = !!process.env.SUPABASE_ANON_KEY;
   const railwayEnv = typeof process.env.RAILWAY_ENVIRONMENT !== 'undefined';
@@ -172,6 +178,10 @@ server.listen(PORT, () => {
       (hasAdminBot ? 'ok' : 'MISSING') +
       ' ADMIN_CHAT_ID=' +
       (hasAdminChat ? 'ok' : 'MISSING') +
+      ' HELP_BOT_TOKEN=' +
+      (hasHelpBot ? 'ok' : 'MISSING') +
+      ' HELP_OPERATOR_CHAT_ID=' +
+      (hasHelpOp ? 'ok' : 'MISSING') +
       ' SUPABASE_URL=' +
       (hasSupabaseUrl ? 'ok' : 'MISSING') +
       ' SUPABASE_ANON_KEY=' +
