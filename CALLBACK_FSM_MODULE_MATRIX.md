@@ -107,8 +107,7 @@ const [action, ...params] = callbackData.split(':');
 | 5c | `reg_avoid_select` | Callback | — | `reg_city` (REG_AVD_SKP/NXT) | `Registration.handleCallback()` |
 | 6 | `reg_height` | Текст (число) | 100-250 см | `reg_city` (student) | `Registration.handleTextMessage()` |
 | 7 | `reg_weight` / `reg_waist` / `reg_hip` / `reg_glutes` / `reg_arm` / `reg_shoulders` / `reg_chest` / `reg_body_fat` | Текст (число) | Діапазони з CONSTANTS.VALIDATION | Ланцюжок замірів → `finishRegistration` | `Registration.handleTextMessage()` |
-| 8 | `reg_instagram` | Текст (@username) | Опціонально, `@` або порожньо | `reg_calendar_id` | `Registration.handleTextMessage()` |
-| 9 | `reg_calendar_id` | Текст (ID) | Email формат або порожньо | `reg_body_goals_choice` | `Registration.handleTextMessage()` |
+| 8 | `reg_instagram` | Текст (@username) | Опціонально, `@` або порожньо | `reg_body_goals_choice` | `Registration.handleTextMessage()` |
 | 9a | `reg_body_goals_choice` | Callback | — | `null` (REG_BODY_GOALS_SKIP) або `reg_body_goals_weight` (REG_BODY_GOALS_FILL) | `Registration.handleCallback()` |
 | 9b | `reg_body_goals_weight` … `reg_body_goals_chest` | Текст (число) | bodyGoals.validateGoalField(..., null) | Наступний крок або saveRegBodyGoalsAndFinish | `Registration.handleTextMessage()` |
 
@@ -122,6 +121,9 @@ const [action, ...params] = callbackData.split(':');
 |---|---------------|-------------------|---------------------|----------|-----|
 | 13 | `PROFILE_VIEW` | `null` (Головне меню) | `null` | `Profile.handleCallback()` | Показати профіль |
 | 14 | `PROFILE_UPDATE_MEASUREMENTS` | `null` | `profile_weight` | `Profile.handleCallback()` | Почати оновлення замірів |
+| 14a | `PROFILE_MY_DOCS` | `null` | `null` | `Profile.handleCallback()` | Показати “Мої документи” (тренер) |
+| 14b | `PROFILE_MY_DOCS_ADD` | `null` | `profile_coach_docs_upload` | `Profile.handleCallback()` | Додати документ з профілю (тренер) |
+| 14c | `PROFILE_MY_DOCS_DONE` | `profile_coach_docs_upload` | `null` | `Profile.handleCallback()` | Завершити додавання документів |
 | 15 | `PROFILE_EDIT_DATA` | `null` | Показ меню змін | `Profile.handleCallback()` | Показати меню змін |
 | 16 | `PROFILE_EDIT_FIRSTNAME` | `null` | `profile_edit_firstname` | `Profile.handleCallback()` | Змінити ім'я |
 | 17 | `PROFILE_EDIT_LASTNAME` | `null` | `profile_edit_lastname` | `Profile.handleCallback()` | Змінити прізвище |
@@ -135,6 +137,8 @@ const [action, ...params] = callbackData.split(':');
 | 20e | `PROFILE_AVD_TGL:{zone}` | `profile_avoid_select` | — | `Profile.handleCallback()` | Тогл зони уникнення |
 | 20f | `PROFILE_AVD_SKP` / `PROFILE_AVD_NXT` | `profile_avoid_select` | `null` (збережено) | `Profile.handleCallback()` | Пропустити / Зберегти |
 | 20g | `PROFILE_AVD_BCK` | `profile_avoid_select` | `profile_accent_select` | `Profile.handleCallback()` | Назад до акценту |
+| 20h | `PROFILE_DOC_DEL:{docId}` | `null` | `null` | `Profile.handleCallback()` | Запит підтвердження видалення документа (тренер) |
+| 20i | `PROFILE_DOC_DEL_OK:{docId}` | `null` | `null` | `Profile.handleCallback()` | Видалити документ з БД (тренер) |
 
 ### Таблиця 2.2: Profile Text Input States
 
@@ -144,7 +148,8 @@ const [action, ...params] = callbackData.split(':');
 | 10 | `profile_waist` | Число (см) | 40-200 | `profile_hip` | `Profile.handleTextMessage()` |
 | 11 | `profile_hip` | Число (см) | 40-200 | `profile_glutes` | `Profile.handleTextMessage()` |
 | 12 | `profile_glutes` | Число (см) | 40-200 | `profile_arm` | `Profile.handleTextMessage()` |
-| 13 | `profile_arm` | Число (см) | 15-80 | `null` (фініш) | `Profile.handleTextMessage()` |
+| 13 | `profile_arm` | Число (см) | 15-80 | `profile_arm_flex` | `Profile.handleTextMessage()` |
+| 13a | `profile_arm_flex` | Число (см) | 15-80 | `null` (фініш) | `Profile.handleTextMessage()` |
 | 14 | `profile_edit_firstname` | Текст | 2-30 символів | `null` | `Profile.handleTextMessage()` |
 | 15 | `profile_edit_lastname` | Текст | 2-50 символів | `null` | `Profile.handleTextMessage()` |
 | 16 | `profile_edit_city` | Текст | 2-50 символів | `null` | `Profile.handleTextMessage()` |
