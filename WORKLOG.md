@@ -624,6 +624,27 @@
   - **Файли**: `lib/profile.js`, `lib/supabase.js`, `lib/constants.js`
   - **Commit**: cd0bd9b
 
+- (status: ready) 2026-04-02 — Довідник закладів (venues): пошук, реєстрація, профіль тренера, міграції SQL
+  - **Scope**: учень / тренер / адмін / БД
+  - **Що змінилось**:
+    - Меню **«Клуби, студії»**, гео- та текстовий пошук, фільтр типу організації; після вибору міста в реєстрації — пропозиція знайти заклад; прив’язка тренера до закладу з профілю.
+    - Таблиці БД і seed у файлах `supabase_migration_venues.sql`, `supabase_migration_venues_seed_directory.sql` (потрібно виконати в Supabase).
+    - `lib/supabase.js`, `lib/venues.js`, `lib/translitUa.js`, `lib/router.js`, `lib/menu.js`, `lib/profile.js`, `lib/registration.js`, `lib/adminVenues.js` (перша версія), `lib/adminHelpers.js`, `lib/adminTelegram.js`, `lib/constants.js`.
+  - **Commit**: `1be57cc`
+  - **Нотатки**: перевірити RLS для нових таблиць; у `git status` можуть бути незакомічені сторонні зміни (наприклад `supabase_migration_ai_content.sql`).
+
+- (status: ready) 2026-04-02 — Адмін-бот: групові заняття — лише вибір з довідника (без ручного вводу кодів)
+  - **Scope**: адмін
+  - **Що змінилось**:
+    - Після типу організації: список **group_class** з `venue_directory_codes` — кнопки (тогл ✓/☐), пагінація `◀/▶`, «Готово», «Без групових», «Скинути вибір»; `editMessageText` у `adminTelegram.js`; у callback передається `messageId` (`adminHelpers.js`).
+  - **Callback/FSM**: `ADM_VGT`, `ADM_VGP`, `ADM_VGOK`, `ADM_VGCL` (див. `lib/adminVenues.js`, `VENUES_DIRECTORY_IMPLEMENTATION_PLAN.md`).
+  - **Файли**: `lib/adminVenues.js`, `lib/adminTelegram.js`, `lib/adminHelpers.js`
+  - **Commit**: `19555d3`
+
+- (status: ready) 2026-04-02 — SYNC: CHANGELOG, Зміни_логіки, VENUES_DIRECTORY_IMPLEMENTATION_PLAN, CALLBACK_FSM_MODULE_MATRIX, HANDOFF_VENUES_AND_SEARCH.md
+  - **Scope**: docs
+  - **Commit**: _pending (після `git add` / `commit` цього оновлення)_
+
 ---
 
 ## Синхронізація з документацією

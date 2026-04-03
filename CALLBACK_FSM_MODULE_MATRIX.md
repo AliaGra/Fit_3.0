@@ -1,7 +1,7 @@
 # CALLBACK → FSM STATE → MODULE MATRIX
 
-**Версія:** 1.6  
-**Дата:** 22.03.2026  
+**Версія:** 1.7  
+**Дата:** 02.04.2026  
 **Призначення:** Матриця співвідношень `callback_data`, FSM-станів та обробників. **Продакшен:** Node.js (`lib/router.js`). Розділ «Історичний еталон GAS» збережено лише для порівняння.
 
 ---
@@ -11,6 +11,7 @@
 Критично: **перший збіг виграє**. Порядок нижче — фактичний (оновлено за кодом `handleCallback`).
 
 1. `BACK_TO_MAIN` → очищення state, `Menu.show`
+1a. **`VENUES_MENU`**, **`VENUES_GEO`**, **`VENUES_TEXT`**, **`VENUES_ORG`**, **`VENUES_RADIUS`**, **`VENUES_PICK`**, **`REG_VENUE_OPEN`**, **`REG_VENUE_SKIP`**, **`PROFILE_COACH_VENUES`** → `lib/venues.js` (`Venues.handleCallback`) — рання гілка після `BACK_TO_MAIN`
 2. `MENU_TRAINING` → підменю тренувань
 3. `AI_ANALYTICS` → `lib/ai/bodyAnalysis` (повний аналіз)
 4. `MENU_SCHEDULE` → підменю розкладу
@@ -40,6 +41,11 @@
 26. Якщо користувач не знайдений → `Registration.start`; інакше `Menu.show`
 
 **Висновок:** не можна визначати модуль лише за префіксом `COACH_` / `SCH_` без урахування цього порядку (наприклад `COACH_BOOK` обробляється раніше за загальний `Schedule`).
+
+### Адмін-бот (`lib/adminBot.js`, webhook `POST /admin_webhook`)
+
+- Якщо `callback_data` починається з **`ADM_V`** → спочатку **`adminVenues.route`** (`lib/adminVenues.js`): меню закладів, додавання закладу, **`ADM_VORG`** (тип організації), **`ADM_VGT`** (тогл групового заняття з довідника), **`ADM_VGP`** (сторінка списку групових), **`ADM_VGOK`** (підтвердити вибір групових), **`ADM_VGCL`** (скинути вибір), **`ADM_VSKF`** (без групових) тощо.
+- Інакше — стандартне адмін-меню (`ADM_MENU`, `ADM_STATS`, …).
 
 ---
 

@@ -1,9 +1,15 @@
 # Передача контексту для нового чату — FIT 3.0
 
-**Дата оновлення handoff:** 22.03.2026  
+**Дата оновлення handoff:** 22.03.2026 (доповнено: див. **HANDOFF_VENUES_AND_SEARCH.md** — довідник закладів, квітень 2026)  
 **Проєкт:** Telegram-бот FIT 3.0 (Node.js, Railway, Supabase)  
 **Репо:** https://github.com/AliaGra/Fit_3.0  
 **Гілка:** `main` (перед новим чатом — `git pull`)
+
+---
+
+## Довідник закладів (venues) — 2026-04
+
+Окремий handoff з комітами, БД, callback і дорожньою картою: **`HANDOFF_VENUES_AND_SEARCH.md`**.
 
 ---
 
@@ -12,10 +18,12 @@
 ```
 Проєкт: FIT 3.0 (Node, Supabase, Railway). Детальний handoff: HANDOFF_NEW_CHAT.md у корені репо.
 
+Довідник закладів (venues) — окремий контекст: HANDOFF_VENUES_AND_SEARCH.md (коміти 1be57cc, 19555d3; план VENUES_DIRECTORY_IMPLEMENTATION_PLAN.md).
+
 Останні зміни (березень 2026):
 • Розклад тренера: різний робочий час по днях (work_hours_by_weekday) — міграція supabase_migration_coach_schedule_work_hours_by_weekday.sql має бути виконана в Supabase.
 • Фікс: підпис дня при введенні часу в «Різний час по днях» — WEEKDAY_LONG_UA_MON0 (Пн–Нд), не WEEKDAY_LONG_UA.
-• Документація синхронізована: Бізнес-логіка §4.4.5–4.4.8 (є §4.4.6a «Додати слоти на день»), CALLBACK_FSM_MODULE_MATRIX.md (v1.6 — порядок Node у `lib/router.js`), Зміни_логіки_та_функціоналу.md.
+• Документація синхронізована: Бізнес-логіка §4.4.5–4.4.8 (є §4.4.6a «Додати слоти на день»), CALLBACK_FSM_MODULE_MATRIX.md (v1.7 — порядок Node у `lib/router.js`, зокрема гілка venues п.1a та блок адмін-бота), Зміни_логіки_та_функціоналу.md.
 
 Попередній фокус: body goals + AI body analysis — див. розділи нижче в HANDOFF_NEW_CHAT.md.
 ```
