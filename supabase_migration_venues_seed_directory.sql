@@ -15,6 +15,21 @@ INSERT INTO public.venue_directory_codes (kind, code, label_ua) VALUES
 ('organization', 'spa_center', 'СПА-центр')
 ON CONFLICT (kind, code) DO NOTHING;
 
+-- "Що є в закладі" (amenities/features): мультивибір у адмінці + показ у картці закладу
+INSERT INTO public.venue_directory_codes (kind, code, label_ua) VALUES
+('amenity', 'gym_area', 'Тренажерна зала'),
+('amenity', 'group_classes', 'Групові заняття'),
+('amenity', 'pool', 'Басейн'),
+('amenity', 'sauna', 'Баня/сауна'),
+('amenity', 'hamam', 'Хамам'),
+('amenity', 'massage', 'Масаж'),
+('amenity', 'sport_hall', 'Зал (ігровий/універсальний)'),
+('amenity', 'spa', 'SPA'),
+('amenity', 'play_area', 'Ігрова зона'),
+('amenity', 'parking', 'Парковка'),
+('amenity', 'cafe', 'Кафе')
+ON CONFLICT (kind, code) DO NOTHING;
+
 INSERT INTO public.venue_directory_codes (kind, code, label_ua) VALUES
 ('studio', 'pilates_studio', 'Студія пілатесу'),
 ('studio', 'yoga_studio', 'Студія йоги'),

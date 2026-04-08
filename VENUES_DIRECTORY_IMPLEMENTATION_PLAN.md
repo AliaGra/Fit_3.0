@@ -147,6 +147,7 @@
 | 2026-04-02 | main | Venues: міграції + seed, `supabase`/`translitUa`/`venues`/`adminVenues`, меню, реєстрація, профіль тренера; також `arm_flex` міграція у коміті | `1be57cc` | так |
 | 2026-04-02 | main | Док: журнал і статуси плану venues | `f061076` | так |
 | 2026-04-02 | main | Адмін-бот: групові заняття — лише вибір з довідника (`ADM_VGT`/`ADM_VGP`/`ADM_VGOK`/`ADM_VGCL`), `editMessageText` | `19555d3` | так |
+| 2026-04-02 | main | Док: handoff `HANDOFF_VENUES_AND_SEARCH.md`, WORKLOG, CHANGELOG, матриця callback v1.7, план venues | `8d702c3` | так |
 
 ---
 
