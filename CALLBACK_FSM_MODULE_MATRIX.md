@@ -275,7 +275,8 @@ State.set(coachId, {
 
 | № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
 |---|---------------|-------------------|---------------------|----------|-----|
-| 40 | `COACH_STUDENTS` | `null` (Coach Menu) | Показ списку | **`Coach.handleCallback()`** | Список учнів |
+| 40 | `COACH_STUDENTS` | `null` (Coach Menu) | Підменю «Мої учні» | **`Coach.handleCallback()`** → `showCoachStudentsHub` | Хаб: список учнів, архів, головне меню |
+| 40a | `COACH_STUDENTS_LIST` (`COACH_STUD_L`) | `null` | Показ списку | **`Coach.handleCallback()`** → `showStudentsList` | Активні учні (прямий список; також з інших місць, напр. запис на тренування) |
 | 41 | `COACH_ADD_STUDENT` | `null` (Coach Menu) | `coach_add_student_name` | **`Coach.handleCallback()`** | Додати учня |
 | 42 | `VIEW_STUDENT:{chatId}` | `null` | Показ картки | **`Coach.handleCallback()`** | Картка учня |
 | 43 | `COACH_TRAIN:{chatId}` | `null` | `training_group` | `Training.handleCallback()` | Тренувати учня (Coach Mode) |
