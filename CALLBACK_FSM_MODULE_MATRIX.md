@@ -1,7 +1,7 @@
 # CALLBACK → FSM STATE → MODULE MATRIX
 
-**Версія:** 1.7  
-**Дата:** 02.04.2026  
+**Версія:** 1.8  
+**Дата:** 13.04.2026  
 **Призначення:** Матриця співвідношень `callback_data`, FSM-станів та обробників. **Продакшен:** Node.js (`lib/router.js`). Розділ «Історичний еталон GAS» збережено лише для порівняння.
 
 ---
@@ -11,7 +11,7 @@
 Критично: **перший збіг виграє**. Порядок нижче — фактичний (оновлено за кодом `handleCallback`).
 
 1. `BACK_TO_MAIN` → очищення state, `Menu.show`
-1a. **`VENUES_MENU`**, **`VENUES_GEO`**, **`VENUES_TEXT`**, **`VENUES_ORG`**, **`VENUES_RADIUS`**, **`VENUES_PICK`**, **`REG_VENUE_OPEN`**, **`REG_VENUE_SKIP`**, **`PROFILE_COACH_VENUES`** → `lib/venues.js` (`Venues.handleCallback`) — рання гілка після `BACK_TO_MAIN`
+1a. **`VENUES_MENU`**, **`VENUES_GEO`**, **`VENUES_TEXT`**, **`VENUES_ORG`**, **`VENUES_RADIUS`**, **`VENUES_PICK`**, **`VENUES_CARD`**, **`VENUES_SEARCH_NEW`** (у коді `VENUES_SN`), **`REG_VENUE_OPEN`**, **`REG_VENUE_SKIP`**, **`PROFILE_COACH_VENUES`** → `lib/venues.js` (`Venues.handleCallback`) — рання гілка після `BACK_TO_MAIN`
 2. `MENU_TRAINING` → підменю тренувань
 3. `AI_ANALYTICS` → `lib/ai/bodyAnalysis` (повний аналіз)
 4. `MENU_SCHEDULE` → підменю розкладу
@@ -30,7 +30,7 @@
 15. **`Registration.handleCallback`** — лише реєстраційні та пов’язані кроки; якщо повертає `true`, вихід
 16. Префікси медпрофілю `MC_*` → `MedicalProfile.handleCallback`
 17. Префікси планів `PLAN_*` (повний набір у `router.js`) → `TrainingPlan.handleCallback`
-18. **`Coach.handleCallback`** — учні, інвайт, pricing, картка учня, `COACH_*` тощо
+18. **`Coach.handleCallback`** — учні, інвайт, pricing, картка учня, `COACH_*` тощо; окремо префікс **`PVCH:<chatId>`** → публічна картка тренера з довідника закладів (`showPublicVenueCoachCard`)
 19. **`Profile.handleCallback`**
 20. **`Schedule.handleCallback`** (усі інші `SCH_*`, не перехоплені вище)
 21. **`Training.handleCallback`**
@@ -44,8 +44,51 @@
 
 ### Адмін-бот (`lib/adminBot.js`, webhook `POST /admin_webhook`)
 
-- Якщо `callback_data` починається з **`ADM_V`** → спочатку **`adminVenues.route`** (`lib/adminVenues.js`): меню закладів, додавання закладу, **`ADM_VORG`** (тип організації), **`ADM_VGT`** (тогл групового заняття з довідника), **`ADM_VGP`** (сторінка списку групових), **`ADM_VGOK`** (підтвердити вибір групових), **`ADM_VGCL`** (скинути вибір), **`ADM_VSKF`** (без групових) тощо.
+- Якщо `callback_data` починається з **`ADM_V`** → спочатку **`adminVenues.route`** (`lib/adminVenues.js`): меню та картка закладів, чернетка (в т.ч. **`ADM_VE:*`** редагування полів, **`ADM_VOB`** / **`ADM_VCT`** — область/місто з `city_list`, **`ADM_VCFM`** — зберегти з превʼю), групові (**`ADM_VGT`**, **`ADM_VGP`**, **`ADM_VGOK`**, **`ADM_VGCL`**, **`ADM_VGCUST`**), amenities (**`ADM_VAT`**, **`ADM_VAOK`**, …), години (**`ADM_VHRS`**, **`ADM_VHD:*`**), розклад групових (**`ADM_VSCH`**, **`ADM_VSA`**, **`ADM_VSAF:*`**, **`ADM_VSW:*`**, **`ADM_VSG:*`**, **`ADM_VSD:*`**), видалення закладу (**`ADM_VDEL`**, **`ADM_VDOK`**), **довідник цін** (**`ADM_VPR`**, **`ADM_VPG`**, **`ADM_VPM`**, **`ADM_VPA`**, **`ADM_VGC*`**, **`ADM_VP*`** тощо — див. **таблицю 1a.3** нижче). У callback часто додається **`:venueId`** (стабільність після рестарту бота).
 - Інакше — стандартне адмін-меню (`ADM_MENU`, `ADM_STATS`, …).
+
+### Довідник закладів (основний бот + адмін): деталізація
+
+#### Таблиця 1a.1: Основний бот — рання гілка Venues (`Venues.handleCallback`)
+
+| Callback_data | Параметри | FSM (типово) | Обробник | Дія |
+|---------------|-----------|--------------|----------|-----|
+| `VENUES_MENU` | — | `venue_*` / `null` | `venues.js` | Хаб «Клуби, студії» (Мої заклади + навігація) |
+| `VENUES_SEARCH_NEW` | — (`VENUES_SN`) | — | `venues.js` | Підменю пошуку нового закладу (гео / текст / тип орг.) |
+| `VENUES_CARD` | `:venueId` | — | `venues.js` | Картка закладу з «Мої заклади» / пошуку |
+| `VENUES_GEO` | — | `venue_wait_location` тощо | `venues.js` | Старт гео-пошуку |
+| `VENUES_TEXT` | — | `venue_text_search` тощо | `venues.js` | Текстовий пошук (область/місто/назва; місто може підставлятись з профілю) |
+| `VENUES_ORG` | `:pick` / `:clear` / `:code` | — | `venues.js` | Фільтр типу організації |
+| `VENUES_RADIUS` | `:1`…`:10` | — | `venues.js` | Радіус гео-пошуку |
+| `VENUES_PICK` | `:venueId` | — | `venues.js` | Обрати заклад (реєстрація / профіль) |
+| `REG_VENUE_OPEN` / `REG_VENUE_SKIP` | — | `reg_venue_offer` | `venues.js` | Відкрити пошук закладів у реєстрації / пропустити |
+| `PROFILE_COACH_VENUES` | — | — | `venues.js` | «Де треную (заклади)» з профілю тренера |
+
+#### Таблиця 1a.2: Префікс `PVCH` (публічна картка тренера)
+
+| Callback_data | FSM | Обробник | Дія |
+|---------------|-----|----------|-----|
+| `PVCH:{chatId}` | `null` | **`Coach.handleCallback()`** → `showPublicVenueCoachCard` | Картка тренера з блоку «Тренери закладу» / профілю; кнопки не показують «себе» для поточного тренера |
+
+**Deep link (не callback):** `/start venue_<venueId>` та `/start pvch_<chatId>` обробляються у **`router.js`** / **`Registration`** — відкриття картки закладу або тренера за payload.
+
+#### Таблиця 1a.3: Адмін-бот — префікси `ADM_V` (`lib/adminVenues.js`)
+
+Усі рядки нижче маршрутизуються через **`adminVenues.route`**, якщо `callback_data` починається з `ADM_V`. Назви з коду `CB` у файлі.
+
+| Група | Префікси (коротко) | Призначення |
+|-------|-------------------|-------------|
+| Меню / список / картка | `ADM_VMENU`, `ADM_VADD`, `ADM_VLIST`, `ADM_VVW`, `ADM_VBL` | Меню закладів, додати, список, картка `:venueId`, назад до списку |
+| Чернетка нового закладу | `ADM_VSAVE`, `ADM_VCAN`, `ADM_VCFM`, `ADM_VE`, `ADM_VSKA`, `ADM_VSKF`, `ADM_VSKTG`, `ADM_VSKIG`, `ADM_VSKPH`, `ADM_VSKA2` | Збереження/скасування, превʼю, редагування поля, skip-кроки, amenities skip |
+| Область / місто | `ADM_VOB`, `ADM_VCT`, `ADM_VLBK` | Вибір з `city_list` (індекси в callback), назад |
+| Тип орг. / групові | `ADM_VORG`, `ADM_VGT`, `ADM_VGP`, `ADM_VGOK`, `ADM_VGCL`, `ADM_VGCUST` | Організація, тогл групового коду, сторінка списку, готово/скинути, локальна назва групового |
+| Amenities | `ADM_VAT`, `ADM_VAOK`, `ADM_VACL` | Тогл коду «що є в закладі», готово, скинути |
+| Години закладу | `ADM_VHRS`, `ADM_VHD` | Редактор графіку по днях тижня |
+| Розклад групових | `ADM_VSCH`, `ADM_VSA`, `ADM_VSAF`, `ADM_VSW`, `ADM_VSG`, `ADM_VSD` | Меню розкладу, додати слот, додати для коду, weekday, вибір group_class, видалити |
+| Видалення закладу | `ADM_VDEL`, `ADM_VDOK` | Запит і підтвердження видалення |
+| Довідник цін | `ADM_VPR`, `ADM_VPG`, `ADM_VGC`, `ADM_VGCC`, `ADM_VGCD`, `ADM_VPM`, `ADM_VPMA`, `ADM_VPMD`, `ADM_VPA`, `ADM_VPAP`, `ADM_VPAA`, `ADM_VPAD` | Меню цін, підрозділи групові/абонементи/інші, додавання/видалення рядків; **у повідомленнях після оновлення — суфікс `:venueId`** |
+
+Повний перелік імен констант — на початку **`lib/adminVenues.js`** (об’єкт `CB`).
 
 ---
 
