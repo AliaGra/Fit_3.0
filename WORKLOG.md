@@ -1528,10 +1528,42 @@
       - при високому symptom-load перевірити зниження обсягу (`setsMultiplier`).
   - **Commit**: `934c4b9`
 
+- (status: shipped) 2026-04-30 — Cycle workflow v3: reviewed-флаги вправ, статуси менопаузи в профілі, регулярні reminder-и, пояснення модифікатора в плані
+  - **Scope**: цикл / профіль / меню / авто-план / адмін-аудит / БД / тести
+  - **Екран / меню**:
+    - `Профіль → 🌸 Цикл → 🧬 Змінити статус` (`regular`, `perimenopause`, `menopause_confirmed`, `postmenopause`)
+    - `Профіль → 🌸 Цикл → 🌡️ Symptom-check (0–3)`
+    - `Головне меню учениці` (авто-нагадування про symptom-check, якщо check старше 7 днів)
+    - `Адмін-бот → 🧪 Аудит вправ (цикл)` (summary + needs_review + mark reviewed)
+  - **Що змінилось**:
+    - Додано міграції:
+      - `supabase_migration_exercise_cycle_flag_reviewed_backfill.sql` (`cycle_flags_reviewed`, backfill `is_inversion`/`is_high_impact`, стартове позначення reviewed);
+      - `supabase_migration_cycle_symptom_reminder.sql` (`user_cycle_settings.last_symptom_reminder_sent_at`).
+    - У `supabase.js`:
+      - `markCycleSymptomReminderSent`;
+      - адмін-методи для аудиту/ручного reviewed (`adminGetExerciseCycleFlagSummary`, `adminGetExerciseCycleFlagList`, `adminSetExerciseCycleFlags`);
+      - оновлено мапінг `user_cycle_settings` (`lastSymptomReminderSentAt`).
+    - У `profile.js`:
+      - редагування `reproductive_status` із поясненнями;
+      - symptom-check 0–3 в профілі (покроково кнопками) із збереженням у `cycle_symptom_logs` і підсумком впливу.
+    - У `menu.js`:
+      - регулярне автоматичне нагадування про symptom-check (не частіше 1 разу на 7 днів), якщо check відсутній/прострочений.
+    - У `planGenerator.js`:
+      - блок пояснення «чому змінено навантаження» додається у notes дня (фаза + symptom-score + множник підходів).
+    - Додано тест-матрицю `docs/CYCLE_TEST_CASES.md`.
+  - **Файли**: `supabase_migration_exercise_cycle_flag_reviewed_backfill.sql`, `supabase_migration_cycle_symptom_reminder.sql`, `lib/supabase.js`, `lib/adminBot.js`, `lib/profile.js`, `lib/menu.js`, `lib/planGenerator.js`, `lib/constants.js`, `docs/CYCLE_TEST_CASES.md`
+  - **Тест-план (мінімум)**:
+    - Перевірити в профілі зміну `reproductive_status` та symptom-check (0–3) з записом у `cycle_symptom_logs`.
+    - Перевірити reminder у головному меню учениці при stale symptom-check >7 днів і відсутності свіжого reminder.
+    - Адмін-аудит: пройти `needs_review`, відмітити `Mark reviewed`, переконатись що `unflagged/needs_review` зменшується.
+    - Авто-план: перевірити появу блоку «чому змінено навантаження» в notes першої вправи дня.
+  - **Commit**: `694cca6`
+
 ---
 
 ## Синхронізація з документацією
 
+- **2026-04-30**: зафіксовано в `WORKLOG` cycle workflow v3 (reviewed flags, menopause status UI, reminders, load reason block, test cases) (`694cca6`).
 - **2026-04-30**: зафіксовано в `WORKLOG` cycle v2 (symptom-check, exercise flags, admin audit lists) (`934c4b9`).
 - **2026-04-30**: зафіксовано в `WORKLOG` ручне підтвердження старту циклу з профілю + нагадування після реєстрації (`14ebdf7`).
 - **2026-04-30**: зафіксовано в `WORKLOG` систему жіночого циклу (БД + реєстрація + фазові модифікатори в авто-плані) (`3488233`).
