@@ -1496,10 +1496,43 @@
     - Завершити реєстрацію жінки зі статусом `regular/perimenopause`: перевірити повідомлення-нагадування.
   - **Commit**: `14ebdf7`
 
+- (status: shipped) 2026-04-30 — Cycle v2: симптом-чек + флаги вправ + адмін-аудит списків по menstrual-контролю
+  - **Scope**: БД / авто-план / адмін-бот / цикл
+  - **Екран / меню**:
+    - `Адмін-бот → 🧪 Аудит вправ (цикл)` (summary + списки)
+    - `Тренер → Мої учні → Авто-план` (врахування symptom-load у модифікаторі навантаження)
+  - **Що змінилось**:
+    - Нова міграція `supabase_migration_cycle_symptoms_and_exercise_flags.sql`:
+      - розширено `reproductive_status` (`menopause_confirmed`, `postmenopause`);
+      - додано `cycle_symptom_logs` (0–3 по симптомах);
+      - додано флаги в `exercise_library`: `is_inversion`, `is_high_impact`.
+    - У `supabase.js` додано API для symptom-логів та адмін-звітів:
+      - `insertCycleSymptomLog`, `getLatestCycleSymptomLog`;
+      - `adminGetExerciseCycleFlagSummary`, `adminGetExerciseCycleFlagList`.
+    - У `menstrualCycle.js`:
+      - додано розрахунок symptom-load (`calcSymptomLoad`);
+      - додано overlay модифікатора (`applySymptomOverlay`) для adaptive-навантаження;
+      - підтримано `menopause_confirmed`/`postmenopause` як лінійний режим.
+    - У `planGenerator.js`:
+      - детермінований фільтр по флагах `isInversion`/`isHighImpact` у menstrual-контролі;
+      - symptom-load враховується в множнику підходів;
+      - keyword-fallback лишено як резерв для legacy-рядків без флагів.
+    - В адмін-боті додано новий розділ аудиту вправ з повними списками:
+      - `menstrual_blocked`, `inversion`, `high_impact`, `unflagged`.
+  - **Файли**: `supabase_migration_cycle_symptoms_and_exercise_flags.sql`, `lib/supabase.js`, `lib/menstrualCycle.js`, `lib/planGenerator.js`, `lib/adminBot.js`
+  - **Тест-план (мінімум)**:
+    - Виконати SQL-міграцію і перевірити нові колонки/таблиці у Supabase.
+    - Адмін-бот: відкрити `🧪 Аудит вправ (цикл)` і пройти всі списки з пагінацією.
+    - Генерація авто-плану для `female`:
+      - перевірити, що `is_inversion/is_high_impact` блокуються у menstrual-контролі;
+      - при високому symptom-load перевірити зниження обсягу (`setsMultiplier`).
+  - **Commit**: `934c4b9`
+
 ---
 
 ## Синхронізація з документацією
 
+- **2026-04-30**: зафіксовано в `WORKLOG` cycle v2 (symptom-check, exercise flags, admin audit lists) (`934c4b9`).
 - **2026-04-30**: зафіксовано в `WORKLOG` ручне підтвердження старту циклу з профілю + нагадування після реєстрації (`14ebdf7`).
 - **2026-04-30**: зафіксовано в `WORKLOG` систему жіночого циклу (БД + реєстрація + фазові модифікатори в авто-плані) (`3488233`).
 - **2026-04-30**: зафіксовано в `WORKLOG` виправлення нижньої межі валідації бажаної ваги (medical min з unified-моделі) (`f7ee85a`).
