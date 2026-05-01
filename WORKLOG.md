@@ -1681,13 +1681,13 @@
   - **Тест-план (мінімум)**:
     - Виконати SQL у Supabase.
     - У адмін-боті `🧪 Аудит вправ (цикл)` перевірити `Needs review: 0`.
-  - **Commit**: (додати хеш після `git push`)
+  - **Commit**: `e8c6597`
 
 ---
 
 ## Синхронізація з документацією
 
-- **2026-04-30**: додано в репозиторій SQL-міграцію `supabase_migration_exercise_cycle_unflagged_finalize.sql` для досягнення `unflagged=0` у `exercise_library` (хеш коміту — після push).
+- **2026-04-30**: зафіксовано в `WORKLOG` SQL-міграцію `supabase_migration_exercise_cycle_unflagged_finalize.sql` для досягнення `unflagged=0` у `exercise_library` (`e8c6597`).
 - **2026-04-30**: зафіксовано в `WORKLOG` валідацію бажаної ваги за об’єднаною персональною вилкою `medical+aesthetic` (`0bf115b`).
 - **2026-04-30**: зафіксовано в `WORKLOG` скориговані вилки грудей із розділенням за статтю (`3f73ac7`).
 - **2026-04-30**: зафіксовано в `WORKLOG` критичний hotfix старту ботів (усунено дубль-змінних у `calcUnifiedIdealModel`) (`99f401b`).
