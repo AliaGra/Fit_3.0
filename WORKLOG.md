@@ -1671,10 +1671,23 @@
     - Пройти крок `goal_chest` у реєстрації для обох статей і перевірити коректний перехід далі.
   - **Commit**: `3f73ac7`
 
+- (status: shipped) 2026-04-30 — SQL: фіналізація аудиту циклу (`unflagged=0`) у `exercise_library`
+  - **Scope**: БД / адмін-аудит вправ / menstrual-контроль
+  - **Що змінилось**:
+    - Додано міграцію `supabase_migration_exercise_cycle_unflagged_finalize.sql`:
+      - розширено keyword-тегування `is_high_impact` / `is_inversion` по `name_ua` / `name_ru`;
+      - для рядків з `cycle_flags_reviewed = false` виставлено `cycle_flags_reviewed = true`, щоб у адмін-аудиті `Needs review` зійшовся до нуля після застосування на проді.
+  - **Файли**: `supabase_migration_exercise_cycle_unflagged_finalize.sql`
+  - **Тест-план (мінімум)**:
+    - Виконати SQL у Supabase.
+    - У адмін-боті `🧪 Аудит вправ (цикл)` перевірити `Needs review: 0`.
+  - **Commit**: (додати хеш після `git push`)
+
 ---
 
 ## Синхронізація з документацією
 
+- **2026-04-30**: додано в репозиторій SQL-міграцію `supabase_migration_exercise_cycle_unflagged_finalize.sql` для досягнення `unflagged=0` у `exercise_library` (хеш коміту — після push).
 - **2026-04-30**: зафіксовано в `WORKLOG` валідацію бажаної ваги за об’єднаною персональною вилкою `medical+aesthetic` (`0bf115b`).
 - **2026-04-30**: зафіксовано в `WORKLOG` скориговані вилки грудей із розділенням за статтю (`3f73ac7`).
 - **2026-04-30**: зафіксовано в `WORKLOG` критичний hotfix старту ботів (усунено дубль-змінних у `calcUnifiedIdealModel`) (`99f401b`).
