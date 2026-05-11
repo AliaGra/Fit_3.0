@@ -40,7 +40,7 @@
 |---|------|--------|-------|----------|
 | 0.1 | Підтвердити ім’я таблиць і префікси callback/FSM у `constants.js` (чернетка в кінці цього файлу або в `CALLBACK_FSM_MODULE_MATRIX.md`) | 🚀 | `1be57cc` | `VENUES_*`, `REG_VENUE_*`, `PROFILE_COACH_VENUES`, FSM у `constants.js` |
 | 0.2 | Рішення щодо перетину з `TZ_FitnessClubs_FIT3.md` (обладнання клубу / `user_clubs` / плани): об’єднати, відкласти або замінити | ⬜ | | Окреме рішення в документації |
-| 0.3 | Перевірити наявність `city_list` / полів `oblast`, `city` у `users` для узгодження фільтрів | 🚀 | `1be57cc` | `city` у `users`; область у реєстрації в state (`regOblast`) |
+| 0.3 | Перевірити наявність `city_list` / полів `oblast`, `city` у `users` для узгодження фільтрів | 🚀 | `1be57cc` | У `users`: `city`, `oblast`, `district` (міграція `supabase_migration_users_venues_location_notify.sql`); у `venues`: `district`; реєстрація/профіль збирають район після вибору НП; сповіщення про новий заклад за oblast+city+(district) |
 
 ---
 
