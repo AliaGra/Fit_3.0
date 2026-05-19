@@ -1777,10 +1777,54 @@
     - В адмін-боті створити/відредагувати заклад із районом та без нього; перевірити картку закладу в адмін- і основному боті.
   - **Commit**: `1be26af`
 
+- (status: shipped) 2026-05-18 — Сповіщення: новий тренер у закладі користувача
+  - **Scope**: заклади / сповіщення / тренер / БД
+  - **Екран / меню**:
+    - `Тренер → Клуби, студії` (прив’язка закладу) / `Тренування` (контекст профілю)
+    - отримувачі: користувачі з цим закладом у «Мої заклади» (`user_venues`)
+  - **Що змінилось**:
+    - Після першої прив’язки тренера до закладу (`coach_venues`) — асинхронна розсилка в основний бот.
+    - Таргетинг: `user_venues.venue_id` = заклад; без самого тренера; без `INVITE_*` і `is_blocked`.
+    - Повідомлення: ім’я тренера, назва закладу, deep links; кнопки `PVCH`, картка закладу, «Мої заклади».
+    - Вимкнення: env `COACH_VENUE_NOTIFY_DISABLED=1`.
+  - **Callback/FSM**: `PVCH`, `VENUES_CARD`, `VENUES_MENU`, `venueLinkCoach` → `linkCoachVenue`
+  - **Міграція (Supabase)**: не потрібна (існуючі `coach_venues`, `user_venues`)
+  - **Файли**: `lib/coachVenueNotify.js`, `lib/supabase.js` (`listUserChatIdsLinkedToVenue`), `lib/venues.js`
+  - **Тест-план (мінімум)**:
+    - Користувач A має заклад X у профілі; тренер B прив’язує X — A отримує повідомлення, B — ні.
+    - Повторна прив’язка того ж закладу — без повторної розсилки.
+  - **Commit**: `e92e07a`
+
+- (status: ready) 2026-05-18 — Персональна бібліотека «Мої вправи» + підбір у ручний план
+  - **Scope**: учень / тренер / БД / програми тренувань
+  - **Екран / меню**:
+    - `💪 Тренування → ⭐ Мої вправи`
+    - `➕ Додати мою вправу` — Верх / Кор / Низ → підкатегорії (як у каталозі) → опційно рівень 3 → **Додати без категорії** → назва → збереження
+    - `📂 Мої вправи` — перегляд по групах (як бібліотека)
+    - `Ручний план → додати вправу в день` — ⭐ з «Мої вправи» + кнопка «Мої вправи (усі)» + пошук
+  - **Що змінилось**:
+    - Таблиця `user_custom_exercises` (власник `owner_chat_id`, категорії `group_level1/2/3`, `name_ua`, опційно `source_exercise_id`, `video_url`, `coach_medical_note`).
+    - У `training_plan_exercises` — `custom_exercise_id`; у плані custom завжди `medical_status = NEUTRAL`.
+    - Модуль `lib/myExercises.js`; кнопка в `showTrainingSubmenu`.
+    - У `GROUPS_BY_TOP.Верх` додано **Розтяжка** (порядок: Груди, Плечі, Розтяжка, Руки, Спина).
+    - Ручний підбір: об’єднання каталогу + персональних вправ (`loadExercisesForPlanPicker`, префікс `c_` у callback).
+  - **Callback/FSM**: `MY_EX_MENU`, `MY_EX_ADD`, `MY_EX_LIST`, `MY_EX_G`, `MY_EX_SKIP`, `MY_EX_ITEM`, `MY_EX_NAME_INPUT`, `PLAN_GROUP:__myex__`, `PLAN_EXERCISE:c_<uuid>`
+  - **Міграція (Supabase)**: `supabase_migration_user_custom_exercises.sql`
+  - **Файли**: `lib/myExercises.js`, `lib/supabase.js`, `lib/constants.js`, `lib/menu.js`, `lib/router.js`, `lib/trainingPlan.js`, `supabase_migration_user_custom_exercises.sql`
+  - **Тест-план (мінімум)**:
+    - Будь-яка роль: додати вправу з категорією та «без категорії»; переглянути в «Мої вправи».
+    - Ручний план: додати ⭐-вправу в день; пошук знаходить custom; збереження в `training_plan_exercises.custom_exercise_id`.
+    - Після міграції SQL на Supabase — перевірити insert/select.
+  - **Commit**: `pending`
+  - **Нотатки / ризики**:
+    - Імпорт «Додати в мою бібліотеку» з картки каталогу (`source_exercise_id`) — ще не в UI.
+    - Авто-генерація плану custom-вправи не підмішує (лише ручний підбір).
+
 ---
 
 ## Синхронізація з документацією
 
+- **2026-05-18**: запис у `WORKLOG` — «Мої вправи» + notify нового тренера в закладі (`e92e07a`); синхронізація в `CHANGELOG.md` / інші доки — **pending** (після commit «Мої вправи»).
 - **2026-05-11**: виконано ретро-аудит синхронізації `WORKLOG` ↔ проектні документи від початку файлу; покриття в `CHANGELOG.md`, `Зміни_логіки_та_функціоналу.md`, `Бізнес-логіка_Gym_3_0_v1.1.md`, `CALLBACK_FSM_MODULE_MATRIX.md` підтверджено, актуалізовано останній блок `1be26af`. Commit: `4998b6b`
 - **2026-05-11**: перенесено зміни з `WORKLOG` (блок `1be26af`: notify нового закладу + `oblast/city/district`) у `CHANGELOG.md`, `Зміни_логіки_та_функціоналу.md`, `Бізнес-логіка_Gym_3_0_v1.1.md`, `CALLBACK_FSM_MODULE_MATRIX.md`. Commit: `4998b6b`
 - **2026-05-11**: зафіксовано в `WORKLOG` розсилку нових закладів за `oblast/city/district` + міграцію локації користувача/закладу (`1be26af`).
