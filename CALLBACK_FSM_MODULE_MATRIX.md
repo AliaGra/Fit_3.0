@@ -1,7 +1,7 @@
 # CALLBACK → FSM STATE → MODULE MATRIX
 
-**Версія:** 1.9  
-**Дата:** 11.05.2026  
+**Версія:** 1.10  
+**Дата:** 19.05.2026  
 **Призначення:** Матриця співвідношень `callback_data`, FSM-станів та обробників. **Продакшен:** Node.js (`lib/router.js`). Розділ «Історичний еталон GAS» збережено лише для порівняння.
 
 ---
@@ -13,6 +13,7 @@
 1. `BACK_TO_MAIN` → очищення state, `Menu.show`
 1a. **`VENUES_MENU`**, **`VENUES_GEO`**, **`VENUES_TEXT`**, **`VENUES_ORG`**, **`VENUES_RADIUS`**, **`VENUES_PICK`**, **`VENUES_CARD`**, **`VENUES_SEARCH_NEW`** (у коді `VENUES_SN`), **`REG_VENUE_OPEN`**, **`REG_VENUE_SKIP`**, **`PROFILE_COACH_VENUES`** → `lib/venues.js` (`Venues.handleCallback`) — рання гілка після `BACK_TO_MAIN`
 2. `MENU_TRAINING` → підменю тренувань
+2a. **`MY_EX_MENU`**, **`MY_EX_ADD`**, **`MY_EX_LIST`**, **`MY_EX_BACK`**, **`MY_EX_TOP`**, префікси **`MY_EX_G:`**, **`MY_EX_SKIP:`**, **`MY_EX_ITEM:`** → `lib/myExercises.js` (`MyExercises.handleCallback`); текст `MY_EX_NAME_INPUT` → `handleTextMessage`
 3. `AI_ANALYTICS` → `lib/ai/bodyAnalysis` (повний аналіз)
 4. `MENU_SCHEDULE` → підменю розкладу
 5. `MENU_SUBSCRIPTION` → `Subscription.showMenu`
@@ -49,7 +50,7 @@
   - callback **`ADM_VSKD`** — пропуск району в адмін-чернетці закладу;
   - callback **`REG_DSTR_SKP`** — пропуск району у реєстрації після вибору НП;
   - callback **`PR_DSTR_SKP`** — пропуск району в профілі після редагування міста.
-- Інакше — стандартне адмін-меню (`ADM_MENU`, `ADM_STATS`, …).
+- Інакше — стандартне адмін-меню (`ADM_MENU`, `ADM_STATS`, `ADM_USERS`, `ADM_INVITES`, …). **👥 Користувачі** / статистика: лише реальні акаунти (`user_id` не `INVITE_%`); невикористані коди — `ADM_INVITES`.
 
 ### Довідник закладів (основний бот + адмін): деталізація
 
@@ -67,6 +68,8 @@
 | `VENUES_PICK` | `:venueId` | — | `venues.js` | Обрати заклад (реєстрація / профіль) |
 | `REG_VENUE_OPEN` / `REG_VENUE_SKIP` | — | `reg_venue_offer` | `venues.js` | Відкрити пошук закладів у реєстрації / пропустити |
 | `PROFILE_COACH_VENUES` | — | — | `venues.js` | «Де треную (заклади)» з профілю тренера |
+
+> **Побічний ефект (не callback):** перша успішна прив’язка тренера до закладу (`linkCoachVenue` у `venues.js`) → асинхронна розсилка `coachVenueNotify.js` користувачам з `user_venues` для цього `venue_id` (env `COACH_VENUE_NOTIFY_DISABLED=1`).
 
 #### Таблиця 1a.2: Префікс `PVCH` (публічна картка тренера)
 
@@ -123,7 +126,10 @@ const [action, ...params] = callbackData.split(':');
 | 3 | `REG_ROLE_STUDENT` | `reg_role` | `reg_first_name` | `Registration.handleCallback()` | Вибір ролі "Учень" |
 | 4 | `REG_ROLE_COACH` | `reg_role` | `reg_first_name` | `Registration.handleCallback()` | Вибір ролі "Тренер" |
 | 5 | `REG_GENDER_MALE` | `reg_gender` | `reg_goal` | `Registration.handleCallback()` | Вибір статі "Чоловік" |
-| 6 | `REG_GENDER_FEMALE` | `reg_gender` | `reg_goal` | `Registration.handleCallback()` | Вибір статі "Жінка" |
+| 6 | `REG_GENDER_FEMALE` | `reg_gender` | `reg_cycle_intro` | `Registration.handleCallback()` | Вибір статі "Жінка" → intro циклу |
+| 6a | `REG_CYCLE_FILL_NOW` | `reg_cycle_intro` | `reg_cycle_status` (CY_ST) | `Registration.handleCallback()` | Заповнити цикл зараз |
+| 6b | `REG_CYCLE_FILL_LATER` | `reg_cycle_intro` | `reg_goal` (або наступний крок анкети) | `Registration.handleCallback()` | Відкласти; `regCycleDeferred` |
+| 6c | `CY_ST:*`, `CY_LEN:*`, `CY_BLD:*`, `CY_LSKP` | `reg_cycle_*` | ланцюжок циклу / `reg_goal` | `Registration.handleCallback()` | Статус, довжина, тривалість, пропуск дати |
 | 7 | `REG_GOAL_LOSE` | `reg_goal` | `reg_birth_date` | `Registration.handleCallback()` | Мета "Схуднути" |
 | 8 | `REG_GOAL_GAIN` | `reg_goal` | `reg_birth_date` | `Registration.handleCallback()` | Мета "Набрати масу" |
 | 9 | `REG_GOAL_KEEP` | `reg_goal` | `reg_birth_date` | `Registration.handleCallback()` | Мета "Підтримувати" |
@@ -183,15 +189,18 @@ const [action, ...params] = callbackData.split(':');
 | 18 | `PROFILE_EDIT_CITY` | `null` | `profile_edit_city` | `Profile.handleCallback()` | Змінити місто |
 | 19 | `PROFILE_EDIT_HEIGHT` | `null` | `profile_edit_height` | `Profile.handleCallback()` | Змінити зріст |
 | 20 | `PROFILE_EDIT_BIRTHDATE` | `null` | `profile_edit_birthdate` | `Profile.handleCallback()` | Змінити дату народження |
-| 20a | `PROFILE_EDIT_ACCENT` | `null` | `profile_accent_select` | `Profile.handleCallback()` | Зони акценту та уникнення |
-| 20b | `PROFILE_ACC_TGL:{zone}` | `profile_accent_select` | — | `Profile.handleCallback()` | Тогл зони акценту |
-| 20c | `PROFILE_ACC_NXT` | `profile_accent_select` | `profile_avoid_select` | `Profile.handleCallback()` | Далі |
-| 20d | `PROFILE_ACC_BCK` | `profile_accent_select` | Показ edit menu | `Profile.handleCallback()` | Назад |
-| 20e | `PROFILE_AVD_TGL:{zone}` | `profile_avoid_select` | — | `Profile.handleCallback()` | Тогл зони уникнення |
-| 20f | `PROFILE_AVD_SKP` / `PROFILE_AVD_NXT` | `profile_avoid_select` | `null` (збережено) | `Profile.handleCallback()` | Пропустити / Зберегти |
-| 20g | `PROFILE_AVD_BCK` | `profile_avoid_select` | `profile_accent_select` | `Profile.handleCallback()` | Назад до акценту |
-| 20h | `PROFILE_DOC_DEL:{docId}` | `null` | `null` | `Profile.handleCallback()` | Запит підтвердження видалення документа (тренер) |
-| 20i | `PROFILE_DOC_DEL_OK:{docId}` | `null` | `null` | `Profile.handleCallback()` | Видалити документ з БД (тренер) |
+| 20a | `PROFILE_EDIT_CYCLE` | `null` | меню циклу | `Profile.handleCallback()` | **🌸 Цикл і менопауза** (лише жінка) |
+| 20a1 | `PROFILE_CYCLE_EDIT_LEN` / `PROFILE_CYCLE_EDIT_BLEED` | `null` | `PROFILE_CY_LEN:*` / `PROFILE_CY_BLD:*` | `Profile.handleCallback()` | Редагування довжини циклу / тривалості |
+| 20a2 | `CY_ST:*` (з профілю) | `null` | — | `Profile.handleCallback()` | Зміна reproductive_status |
+| 20b | `PROFILE_EDIT_ACCENT` | `null` | `profile_accent_select` | `Profile.handleCallback()` | Зони акценту та уникнення |
+| 20c | `PROFILE_ACC_TGL:{zone}` | `profile_accent_select` | — | `Profile.handleCallback()` | Тогл зони акценту |
+| 20d | `PROFILE_ACC_NXT` | `profile_accent_select` | `profile_avoid_select` | `Profile.handleCallback()` | Далі |
+| 20e | `PROFILE_ACC_BCK` | `profile_accent_select` | Показ edit menu | `Profile.handleCallback()` | Назад |
+| 20f | `PROFILE_AVD_TGL:{zone}` | `profile_avoid_select` | — | `Profile.handleCallback()` | Тогл зони уникнення |
+| 20g | `PROFILE_AVD_SKP` / `PROFILE_AVD_NXT` | `profile_avoid_select` | `null` (збережено) | `Profile.handleCallback()` | Пропустити / Зберегти |
+| 20h | `PROFILE_AVD_BCK` | `profile_avoid_select` | `profile_accent_select` | `Profile.handleCallback()` | Назад до акценту |
+| 20i | `PROFILE_DOC_DEL:{docId}` | `null` | `null` | `Profile.handleCallback()` | Запит підтвердження видалення документа (тренер) |
+| 20j | `PROFILE_DOC_DEL_OK:{docId}` | `null` | `null` | `Profile.handleCallback()` | Видалити документ з БД (тренер) |
 
 ### Таблиця 2.2: Profile Text Input States
 
@@ -491,7 +500,8 @@ State.set(coachId, {
 
 | № | Callback_data | FSM State Required | Наступний FSM State | Обробник | Дія |
 |---|---------------|-------------------|---------------------|----------|-----|
-| 70 | `PLAN_EXERCISE:{exId}` | `plan_add_exercise_day` / `plan_search_input` | `plan_sets_preset` | `TrainingPlan.handleCallback()` | Обрати вправу для плану (ручне додавання) |
+| 70 | `PLAN_EXERCISE:{exId}` | `plan_add_exercise_day` / `plan_search_input` | `plan_sets_preset` | `TrainingPlan.handleCallback()` | Обрати вправу для плану (ручне додавання); `{exId}` може бути `c_<uuid>` для custom з «Мої вправи» |
+| 70a | `PLAN_GROUP:__myex__` | `plan_add_exercise_day` | список custom | `TrainingPlan.handleCallback()` | Група «Мої вправи (усі)» у пікері ручного плану |
 | 71 | `PLAN_EXERCISE_ADD:{exId}:SET` | Після PLAN_SETS_CUSTOM | `plan_add_exercise_day` | `TrainingPlan.handleCallback()` | Тип виконання: кілька підходів (сети) |
 | 72 | `PLAN_EXERCISE_ADD:{exId}:SINGLE` | Після PLAN_SETS_CUSTOM | `plan_add_exercise_day` | `TrainingPlan.handleCallback()` | Тип виконання: одиночне |
 | 72a | `PLAN_ACC_ST` | Авто-підбір | `plan_accent_select` | `TrainingPlan.handleCallback()` | Почати вибір акцент-зон |
