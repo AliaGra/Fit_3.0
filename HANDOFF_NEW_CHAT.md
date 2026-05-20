@@ -1,32 +1,106 @@
 # Передача контексту для нового чату — FIT 3.0
 
-**Дата оновлення handoff:** 22.03.2026 (доповнено: див. **HANDOFF_VENUES_AND_SEARCH.md** — довідник закладів, квітень 2026)  
+**Дата оновлення handoff:** 19.05.2026  
 **Проєкт:** Telegram-бот FIT 3.0 (Node.js, Railway, Supabase)  
 **Репо:** https://github.com/AliaGra/Fit_3.0  
 **Гілка:** `main` (перед новим чатом — `git pull`)
 
 ---
 
-## Довідник закладів (venues) — 2026-04
+## Що вставити в перший меседж нового чату
 
-Окремий handoff з комітами, БД, callback і дорожньою картою: **`HANDOFF_VENUES_AND_SEARCH.md`**.
+```
+Проєкт: FIT 3.0 (Node, Supabase, Railway). Handoff: @HANDOFF_NEW_CHAT.md
+
+Останні коміти (main, травень 2026):
+• 8ed0a12 — адмін-бот: «Користувачі» без дубля після активації інвайту (фільтр user_id INVITE_%)
+• 336510c — реєстрація: intro циклу/менопаузи; профіль «Цикл і менопауза»; роль Тренер→Учень
+• fd40667 — «Мої вправи» + ручний план (custom_exercise_id)
+• e92e07a — notify: тренер прив’язав заклад → користувачі з user_venues
+• 1be26af — notify нового закладу за oblast/city/district
+
+Міграція на Supabase (перевірити!): supabase_migration_user_custom_exercises.sql — для «Мої вправи».
+
+Доки синхронізовані: CHANGELOG, Зміни_логіки, Бізнес-логіка v1.8, CALLBACK_FSM v1.10, WORKLOG.
+
+Заклади (venues) — окремо: @HANDOFF_VENUES_AND_SEARCH.md
+
+Задача: [опиши що потрібно]
+Не коммитити / не пушити без моєї просьби. Не додавати fit_nutrition_*.xlsx у git.
+```
 
 ---
 
-## Що вставити в перший меседж нового чату (коротко)
+## Де суть проєкту (канон)
 
-```
-Проєкт: FIT 3.0 (Node, Supabase, Railway). Детальний handoff: HANDOFF_NEW_CHAT.md у корені репо.
+| Пріоритет | Документ | Навіщо |
+|-----------|----------|--------|
+| 1 | **README.md** | Стек, структура `lib/`, cron, посилання |
+| 2 | **Бізнес-логіка_Gym_3_0_v1.1.md** (v1.8) | Продукт і правила: реєстрація, інвайти, розклад, плани, профіль |
+| 3 | **CALLBACK_FSM_MODULE_MATRIX.md** (v1.10) | Callback → FSM → модуль; порядок у `lib/router.js` |
+| 4 | **Схемы_технических_данных_v2.md** | Таблиці Supabase, зв’язки |
+| 5 | **Зміни_логіки_та_функціоналу.md** | Хронологія змін по датах |
+| 6 | **WORKLOG.md** | Що зроблено в розробці + sha комітів |
+| 7 | **CHANGELOG.md** | Коротко для користувача (Unreleased) |
 
-Довідник закладів (venues) — окремий контекст: HANDOFF_VENUES_AND_SEARCH.md (коміти 1be57cc, 19555d3; план VENUES_DIRECTORY_IMPLEMENTATION_PLAN.md).
+**Операційно:** `DEPLOY.md` (Railway, env, webhook).  
+**Заклади:** `VENUES_DIRECTORY_IMPLEMENTATION_PLAN.md`, `HANDOFF_VENUES_AND_SEARCH.md`.
 
-Останні зміни (березень 2026):
-• Розклад тренера: різний робочий час по днях (work_hours_by_weekday) — міграція supabase_migration_coach_schedule_work_hours_by_weekday.sql має бути виконана в Supabase.
-• Фікс: підпис дня при введенні часу в «Різний час по днях» — WEEKDAY_LONG_UA_MON0 (Пн–Нд), не WEEKDAY_LONG_UA.
-• Документація синхронізована: Бізнес-логіка §4.4.5–4.4.8 (є §4.4.6a «Додати слоти на день»), CALLBACK_FSM_MODULE_MATRIX.md (v1.7 — порядок Node у `lib/router.js`, зокрема гілка venues п.1a та блок адмін-бота), Зміни_логіки_та_функціоналу.md.
+---
 
-Попередній фокус: body goals + AI body analysis — див. розділи нижче в HANDOFF_NEW_CHAT.md.
-```
+## Три боти (webhook)
+
+| Бот | Webhook | Env | Модуль |
+|-----|---------|-----|--------|
+| Основний FIT 3.0 | `POST /webhook` | `BOT_TOKEN` | `lib/router.js` |
+| Адмін | `POST /admin_webhook` | `ADMIN_BOT_TOKEN`, `ADMIN_CHAT_ID` | `lib/adminBot.js`, `lib/adminVenues.js` |
+| Help / support | `POST /help_webhook` | `HELP_BOT_TOKEN` | `lib/helpBot.js` (інвайт-коди для beta) |
+
+Деплой: `git push` → `main` → Railway перезапуск (~1–3 хв).
+
+---
+
+## Останнє на main (травень 2026)
+
+### Адмін-бот — дубль у «Користувачі» (`8ed0a12`)
+- Після `replaceInviteWithChatId` у БД: реальний user + заготовка `USED_INVITE_*`.
+- **👥 Користувачі** / статистика: `adminRealUsersQuery()` — без `user_id LIKE 'INVITE_%'`.
+- Активні коди — лише **🔑 Інвайти**.
+
+### Реєстрація / профіль — цикл (`336510c`)
+- Після **Жінка** → `REG_CYCLE_INTRO` (зараз / пізніше).
+- Профіль (жінка): **🌸 Цикл і менопауза** (`PROFILE_EDIT_CYCLE`, `PROFILE_CY_*`, `CY_ST`…).
+- Роль на `/start`: **Тренер** → **Учень**.
+
+### «Мої вправи» (`fd40667`)
+- `💪 Тренування → ⭐ Мої вправи` — `lib/myExercises.js`.
+- Ручний план: `PLAN_EXERCISE:c_<uuid>`, `PLAN_GROUP:__myex__`.
+- **Міграція:** `supabase_migration_user_custom_exercises.sql` (таблиця `user_custom_exercises`, колонка `training_plan_exercises.custom_exercise_id`).
+- Не в UI: імпорт з каталогу в бібліотеку; авто-план custom не підмішує.
+
+### Notify: тренер у закладі (`e92e07a`)
+- Перша `linkCoachVenue` → `lib/coachVenueNotify.js` → користувачі з `user_venues`.
+- `COACH_VENUE_NOTIFY_DISABLED=1` — вимкнути.
+
+### Notify: новий заклад (`1be26af`)
+- Після збереження закладу в адміні → `lib/venueNewNotify.js` за `oblast+city(+district)`.
+
+### Інвайти (загальне)
+- Help-бот: оператор генерує універсальний `INVITE_*`.
+- Активація: гейт оферти → `activateInvite` / `linkCoachByInviteCode`.
+- Node: `replaceInviteWithChatId` — INSERT реального user + перенос FK; заготовка → `USED_*`.
+
+---
+
+## Міграції — перевірити на Supabase
+
+| Файл | Статус |
+|------|--------|
+| `supabase_migration_user_custom_exercises.sql` | **Потрібна** для «Мої вправи» |
+| `supabase_migration_users_venues_location_notify.sql` | oblast/district (notify закладів) |
+| `supabase_migration_coach_schedule_work_hours_by_weekday.sql` | різний час по днях |
+| `supabase_migration_user_body_goals.sql` | бажані параметри + goals_analysis |
+| Інші `supabase_migration_*.sql` | за модулем — див. README / WORKLOG |
 
 ---
 
@@ -34,216 +108,110 @@
 
 | Компонент | Деталь |
 |-----------|--------|
-| Runtime | Node.js, хостинг Railway |
-| БД | Supabase (PostgreSQL) |
-| Бот | Telegram Bot API (webhook POST /webhook) |
-| AI | OpenAI API (gpt-4o-mini), опційно через AI_ENABLED |
-| Модулі | `lib/` — router, coach, registration, profile, training, schedule, user, supabase, constants, bodyGoals, bodyType, bodyMetrics, medicalProfile, medicalFilter тощо |
-| AI-модулі | `lib/ai/` — aiClient, aiPrompts, bodyAnalysis, goalsVsCurrent, planComments, smartReminder, failureAnalysis |
+| Runtime | Node.js ≥18, Railway |
+| БД | Supabase (PostgreSQL), шар `lib/supabase.js` |
+| Роутинг | `lib/router.js` — **перший збіг виграє** |
+| FSM | `lib/state.js` + `lib/constants.js` |
+| AI | `lib/ai/*`, `AI_ENABLED`, OpenAI gpt-4o-mini |
 
-### Callbacks і FSM (канон Node)
+**Ключові модулі:** `registration.js`, `profile.js`, `coach.js`, `schedule.js`, `training.js`, `trainingPlan.js`, `planGenerator.js`, `venues.js`, `bodyGoals.js`, `myExercises.js`, `adminBot.js`, `helpBot.js`.
 
-- **Файл:** `CALLBACK_FSM_MODULE_MATRIX.md` (**v1.6**, 22.03.2026).
-- **Роутинг:** єдине джерело порядку обробки — **`lib/router.js`**, на початку матриці — розділ **«Node.js: порядок у lib/router.js»** (ранні гілки на кшталт `COACH_BOOK`, `REG_NEW`, `HISTORY_MENU` / `HIST_*` тощо; **Coach + Pricing** — через `Coach`, не через `Registration`).
-- Застарілий псевдокод **GAS / `Router.gs`** у матриці залишено лише з позначкою legacy; на проді його не використовувати.
+**Матриця callback:** `CALLBACK_FSM_MODULE_MATRIX.md` v1.10 — на початку файлу порядок Node у `router.js` (venues п.1a, `MY_EX_*` п.2a, Registration, Coach, Profile, Schedule…).
 
 ---
 
-## Що реалізовано в цьому чаті (нові функції)
+## Довідник закладів (venues)
 
-### 1. Бажані параметри тіла (`user_body_goals`)
-**Таблиця Supabase:**
-```
-user_body_goals (
-  chat_id        text PK → users(chat_id) ON DELETE CASCADE,
-  goal_weight    numeric,
-  goal_waist     numeric,
-  goal_hips      numeric,
-  goal_shoulders numeric,
-  goal_chest     numeric,
-  set_by_coach   text → users(chat_id),
-  goals_analysis jsonb,      ← кеш аналізу цілей
-  analysis_date  timestamptz,
-  updated_at     timestamptz
-)
-```
-**Міграції:**
-- `supabase_migration_user_body_goals.sql` — створення таблиці  
-- `ALTER TABLE user_body_goals ADD COLUMN IF NOT EXISTS goals_analysis jsonb, analysis_date timestamptz;` — виконано в Supabase
-
-**Потоки введення цілей:**
-1. **Тренер при invite** — після зон уникнення → 5 питань (вага, талія, ягодиці, плечі, груди), кожне з «Пропустити». FSM: `invite_body_goals_weight` … `invite_body_goals_chest`.
-2. **Тренер у картці учня** — кнопка «🎯 Бажані параметри» → 5 питань. Блокується якщо немає зросту. FSM: `coach_body_goals_weight` … `coach_body_goals_chest`.
-3. **Реєстрація (учень/тренер)** — перед `finishRegistration` → «Вказати бажані параметри?» [Пропустити][Заповнити]. FSM: `reg_body_goals_choice`, `reg_body_goals_weight` … `reg_body_goals_chest`.
-
-**Ключові файли:**
-- `lib/bodyGoals.js` — `validateGoalField`, `analyzeGoalsVsCurrentState`, `saveBodyGoals`, `showGoalsToStudent`, `buildAIInputBlock`, `determineNotificationLevel`, `buildCoachNotificationText`
-- `lib/supabase.js` — `upsertBodyGoals(coachId, studentChatId, goals, analysis)`, `getBodyGoals`, `getLatestMeasurementsForGoals`
+Окремий handoff: **`HANDOFF_VENUES_AND_SEARCH.md`** (коміти, callback `VENUES_*`, `ADM_V*`, deep link `venue_<id>`, `pvch_<chatId>`).
 
 ---
 
-### 2. Аналіз цілей vs поточний стан (`analyzeGoalsVsCurrentState`)
+## Cron (Railway / зовнішній scheduler)
 
-**Файл:** `lib/bodyGoals.js`
+- `GET /cron/reminders?secret=...` — нагадування учням
+- `GET /cron/plan-revision?secret=...` — ревізія плану тренеру
+- `GET /cron/subscription-reminders?secret=...` — абонемент залу
 
-**Логіка:**
-
-**Група 1 — без поточних замірів (блокуючі + попереджувальні):**
-- ІМТ цілі < 17.5 → **блок**
-- goal_waist / зріст < 0.35 → **блок**
-- goal_waist >= goal_hips → **блок**
-- ІМТ цілі > 35 (якщо поточний < 30) → **блок**; якщо поточний >= 30 → **попередження**
-- Підліток (вік < 16, або 16–17 з teen_mode != false) + схуднення → **блок**
-- ІМТ 17.5–18.5 → **попередження**
-- goal_hips / goal_waist < 1.10 → **попередження**
-
-**Група 2 — з поточними замірами:**
-- goal_hips < current.waist → **блок**
-- Дельта талії > 25%, ягодиць > 15%, ваги > 20% → **попередження**
-- Тип фігури + вектор розвитку (apple/apple_m/v_shape/athletic_m/rectangle_m/pear/inverted_triangle тощо) → **попередження або блок**
-
-**Результат кешується** в `user_body_goals.goals_analysis` (jsonb):
-```json
-{
-  "errors": [],
-  "warnings": [],
-  "deltaItems": [{ "field": "glutes", "label": "Ягодиці", "current": 95, "goal": 100, ... }],
-  "hasConflict": false,
-  "snapshot": { "bodyType": "pear", "currentBMI": 21.9, "currentWH": 0.43, "phase": "surplus" },
-  "analyzedAt": "...",
-  "triggeredBy": "goals_save"
-}
-```
-
-**Перерахунок при оновленні замірів:**  
-`User.updateMeasurements()` → якщо є waist+glutes+shoulders → lazy require `bodyGoals` → `analyzeGoalsVsCurrentState` → `upsertBodyGoals` → якщо статус змінився → `safeSend` тренеру.
+Секрети: `DEPLOY.md`.
 
 ---
 
-### 3. AI-аналітика тіла (збереження та кнопка перегляду)
-
-**Таблиця:** `ai_generated_content` (вже існувала)  
-**Ключ:** `content_type = 'body_analysis'`, `entity_id = studentChatId`  
-**Поле:** `ai_response = { text: '...', scenario: '...' }`
-
-**Файл:** `lib/ai/bodyAnalysis.js`
-
-Нові функції:
-- `generateAndSave(chatId, scenario, measurements)` — генерує, зберігає в БД, повертає текст
-- `getStoredAnalysis(chatId)` — читає останній запис з БД
-- `sendStoredAnalysis(recipientChatId, studentChatId, labelPrefix)` — показує збережений аналіз
-- `generateAndSend(chatId, scenario, measurements, saveForChatId)` — генерує, зберігає (для saveForChatId якщо вказано), відправляє
-
-**Тригери генерації/збереження:**
-1. Після `finishCreateStudentByInvite` — зберігається для `inviteCode` (4-й аргумент `saveForChatId`)
-2. Після `finishRegistration` (self-registration) — зберігається для `chatId`
-3. Після `activateInvite` (invite_activate) — зберігається для `chatId` учня
-4. При `User.updateMeasurements()` — lazy require + `generateAndSave` якщо є weight або waist
-
-**При активації invite:**  
-`supabase.replaceInviteWithChatId` → тепер оновлює `ai_generated_content.entity_id` і `user_body_goals.chat_id` з `INVITE_XXX` на реальний chatId.
-
-**Кнопки:**
-- **Учень, головне меню** → `🤖 AI-аналітика` → callback `AI_ANALYTICS`
-- **Тренер, картка учня** → `🤖 AI-аналітика` → callback `COACH_AI_ANALYTICS:studentChatId`
-
----
-
-### 4. Поля учня для teen-режиму
-
-**ALTER TABLE users:**
-```sql
-ADD COLUMN IF NOT EXISTS teen_mode boolean DEFAULT false,
-ADD COLUMN IF NOT EXISTS confirmed_by_parent boolean DEFAULT false,
-ADD COLUMN IF NOT EXISTS age_group text;
-```
-Виконано в Supabase. Логіка `isTeenRestricted(user)` в `lib/bodyGoals.js`:
-- вік < 16 → завжди блок
-- вік >= 18 → завжди дозволено
-- вік 16–17 → блок, якщо `teen_mode !== false`
-
----
-
-### 5. lib/ai/goalsVsCurrent.js (новий файл)
-Короткий AI-переказ блоку аналізу цілей для учня (3–5 речень, без маркерів). Промпт `GOALS_VS_CURRENT` в `lib/ai/aiPrompts.js`.
-
----
-
-## Відомі проблеми / незавершено
-
-### 🔴 AI-аналітика не показується в картці учня
-**Симптом:** кнопка «AI-аналітика» в картці учня або в меню учня показує «ще не сформована».  
-**Причина:** аналітика при invite зберігалась під `INVITE_XXX` (inviteCode), а після активації `entity_id` в `ai_generated_content` не оновлювався на реальний chatId.  
-**Виправлення додано** в `replaceInviteWithChatId` (коміт `supabase.js`), але **потрібно перевірити**:
-1. Для НОВИХ учнів (після цього фіксу) — має працювати автоматично
-2. Для ІСНУЮЧИХ учнів — аналітика оновиться при наступному оновленні замірів (або можна вручну через кнопку «AI-аналітика» → "не сформована" → тренер оновлює заміри → генерується нова)
-
-### 🟡 goals_analysis — перерахунок для існуючих записів
-Якщо student вже є в `user_body_goals` без `goals_analysis`, при першому виклику `saveBodyGoals` з картки учня — кеш запишеться.
-
-### 🟡 AI_ENABLED = false
-Якщо AI вимкнено — `generateAndSave` повертає `null`, нічого не зберігається. Кнопка «AI-аналітика» покаже «ще не сформована». Це очікувана поведінка.
-
----
-
-## Структура нових файлів / змін
-
-| Файл | Зміна |
-|------|-------|
-| `lib/bodyGoals.js` | Новий: analyzeGoalsVsCurrentState, isTeenRestricted, calcBMI, shouldShowAIComment, buildAIInputBlock, determineNotificationLevel, buildCoachNotificationText |
-| `lib/ai/bodyAnalysis.js` | Розширено: generateAndSave, getStoredAnalysis, sendStoredAnalysis; generateAndSend тепер зберігає в БД |
-| `lib/ai/goalsVsCurrent.js` | Новий файл: AI-переказ аналізу цілей |
-| `lib/ai/aiPrompts.js` | Додано: SYSTEM_PROMPTS.GOALS_VS_CURRENT, USER_TEMPLATES.GOALS_VS_CURRENT |
-| `lib/supabase.js` | upsertBodyGoals тепер приймає `analysis`; replaceInviteWithChatId оновлює ai_generated_content + user_body_goals; userFromRow → teenMode, confirmedByParent, ageGroup |
-| `lib/user.js` | updateMeasurements: lazy require bodyGoals + generateAndSave для AI; lazy require bodyGoalsModule замість top-level (циклічна залежність!) |
-| `lib/coach.js` | Кнопки в картці учня: Бажані параметри + AI-аналітика; invite flow: аналіз goals + показ тренеру; generateAndSend з 4-м аргументом |
-| `lib/registration.js` | Крок body goals choice перед finishRegistration; saveRegBodyGoalsAndFinish |
-| `lib/menu.js` | Кнопка AI-аналітика в student menu |
-| `lib/router.js` | Callback AI_ANALYTICS; invite_ steps → Coach.handleTextMessage |
-| `lib/constants.js` | FSM: invite_body_goals_*, coach_body_goals_*, reg_body_goals_*; Callbacks: AI_ANALYTICS, COACH_AI_ANALYTICS, COACH_BODY_GOALS, INVITE_BODY_GOALS_*, REG_BODY_GOALS_* |
-| `supabase_migration_user_body_goals.sql` | Оновлено: goals_analysis, analysis_date |
-
----
-
-## Що перевірити в новому чаті
-
-1. **AI-аналітика тіла** — після реєстрації учня через invite: коли учень вводить код і заходить в меню, кнопка «AI-аналітика» має показувати збережений текст аналізу.
-2. **Бажані параметри** — після встановлення цілей тренером: у картці учня відображати дельту і терміни.
-3. **Регенерація AI** — після оновлення замірів учня тренером: `User.updateMeasurements` → новий текст зберігається в `ai_generated_content`.
-4. **Розклад / Supabase:** виконана міграція `work_hours_by_weekday`; у боті — «Налаштування» → різний час по днях зберігається; генерація слотів відповідає інтервалам по днях.
-
----
-
-## Розклад тренера (оновлення Mar 2026, `lib/schedule.js`)
-
-- **Налаштування шаблону:** опція **«Різний час по днях тижня»** — `work_hours_by_weekday` у `coach_schedule_settings` (міграція `supabase_migration_coach_schedule_work_hours_by_weekday.sql`); генерація слотів (`generateSlotsForCoach`, `createSlotsForCoachForDate`) бере інтервал через `getWorkHoursForWeekday`. Підпис дня у запиті часу: **`WEEKDAY_LONG_UA_MON0[dayIdx]`** (індекс 0=Пн…6=Нд), не `WEEKDAY_LONG_UA`. Callbacks: `SCH_SETTINGS_EDIT_WORK:perday`, `SCH_SETTINGS_DAY_HOURS:{0–6}`, `SCH_SETTINGS_WORK_PER_DAY_DONE`; FSM `SCH_SETTINGS_WORK_PER_DAY`.
-- **Мій розклад:** лічильники на кнопках фільтрів і списки — **21 день** (`COACH_MY_SCHEDULE_WINDOW_DAYS`, `getCoachMyScheduleWindowStartEndKeys`); без «7 днів» у назвах; **«Всі слоти»** прибрано.
-- **«Вільні слоти»** (тренер): як **«Зайняті слоти»** — лише **текст** (заголовок секції «🕐 Вільні слоти», далі по днях: день тижня + дата, рядки `час — Вільний`), **без інлайн-кнопок по слотах** і без пагінації; рядок **макс. вільних на день**; `showCoach7DaysView` + `filter === 'available'`, `pageSlots = []`. Док.: `README.md` (параграф після таблиці документів), `CALLBACK_FSM_MODULE_MATRIX.md` v1.6, §4.4.7 у `Бізнес-логіка_Gym_3_0_v1.1.md`.
-- **Розклад → Відмітити тренування:** `SCH_MARK_TRAINING`, `afterCompleteSlot=mark_training` після `SCH_COMPLETE`.
-- **Чекають підтвердження:** `afterCoachConfirmDecline` після `SCH_CONF` / `SCH_DECLINE`.
-- **Календар тренера:** легенда 🟡 — неділя або відпустка; на кнопці дня — **дд.мм** + день тижня + зайняті в дужках; у тексті календаря — **⏳ На підтвердження:** число або **—**. **Слоти дня** — у тексті рядки для зайнятих / перерви / на підтвердженні; **усі слоти дня** також **інлайн-кнопками** (`showCoachCalendar`, `showCoachDaySlots`).
-- Документація: `Бізнес-логіка_Gym_3_0_v1.1.md` §4.4.5–4.4.8 (у т.ч. §4.4.6a «Додати слоти на день»), `CALLBACK_FSM_MODULE_MATRIX.md` v1.6 (блоки «Мій розклад», «Налаштування шаблону», «Розклад»; порядок `router.js` на початку файлу), `Зміни_логіки_та_функціоналу.md`.
-
----
-
-## Ключові константи / callbacks
+## Env (часто потрібні)
 
 ```
-CALLBACKS.AI_ANALYTICS = 'AI_ANALYTICS'
-CALLBACK_PREFIXES.COACH_AI_ANALYTICS = 'COACH_AI_ANALYTICS'
-CALLBACK_PREFIXES.COACH_BODY_GOALS = 'COACH_BODY_GOALS'
-CALLBACK_PREFIXES.INVITE_BODY_GOALS_SKIP_WEIGHT/WAIST/HIPS/SHOULDERS/CHEST
-FSM: invite_body_goals_weight/waist/hips/shoulders/chest
-FSM: coach_body_goals_weight/waist/hips/shoulders/chest
-FSM: reg_body_goals_choice, reg_body_goals_weight/.../chest
+BOT_TOKEN, SUPABASE_URL, SUPABASE_ANON_KEY
+ADMIN_BOT_TOKEN, ADMIN_CHAT_ID
+HELP_BOT_TOKEN
+OPENAI_API_KEY, AI_ENABLED=true   # опційно
+COACH_VENUE_NOTIFY_DISABLED=1    # вимкнути notify тренера в закладі
+VENUE_NEW_NOTIFY_DISABLED=1      # якщо є — вимкнути notify нового закладу
 ```
 
 ---
 
-## Підключення AI (нагадування)
+## Що перевірити після змін
 
-Railway Variables:  
-`OPENAI_API_KEY=sk-...`  
-`AI_ENABLED=true`  
-`AI_MODEL=gpt-4o-mini` (default)  
-`AI_MAX_TOKENS=600` (default)
+1. **Інвайт:** help → код → основний бот → оферта → активація → в адміні **один** користувач (`8ed0a12`).
+2. **Мої вправи:** міграція виконана → додати вправу → ручний план → `custom_exercise_id` у БД.
+3. **Цикл:** жінка-учень/тренер — intro «пізніше» / «зараз»; профіль → Цикл і менопауза.
+4. **Notify закладу:** тренер прив’язує заклад → push користувачам з «Мої заклади».
+5. **AI-аналітика після invite:** `entity_id` оновлюється в `replaceInviteWithChatId` — для нових учнів має працювати; старі — після оновлення замірів.
+
+---
+
+## Реалізовано раніше (стисло — body goals + AI)
+
+Деталі в `WORKLOG` / `Бізнес-логіка` §7a–7c.
+
+- **`user_body_goals`** — бажані параметри (тренер invite/картка, реєстрація); `lib/bodyGoals.js`, `analyzeGoalsVsCurrentState`.
+- **`ai_generated_content`** — body_analysis; `lib/ai/bodyAnalysis.js`; кнопки `AI_ANALYTICS`, `COACH_AI_ANALYTICS`.
+- **Teen-режим:** `users.teen_mode`, `confirmed_by_parent`, `age_group`.
+- **`lib/ai/goalsVsCurrent.js`** — AI-переказ аналізу цілей.
+
+---
+
+## Розклад тренера (березень 2026 — актуально)
+
+- **Різний час по днях:** `work_hours_by_weekday`, міграція `supabase_migration_coach_schedule_work_hours_by_weekday.sql`; підпис дня — `WEEKDAY_LONG_UA_MON0`.
+- **Мій розклад:** вікно 21 день; **Вільні слоти** — текст на 3 дні + «Інші вільні слоти».
+- **Календар:** BOOKED — 3 кнопки в ряд; перерва — «Відмінити»; легенда 🟡.
+- Док.: `Бізнес-логіка` §4.4.5–4.4.8, `CALLBACK_FSM` блоки SCH_*.
+
+---
+
+## Відомі обмеження / не зроблено
+
+- Імпорт вправи з каталогу в «Мої вправи» (`source_exercise_id`) — без UI.
+- Custom-вправи не в авто-генерації плану (лише ручний підбір).
+- Рядки `USED_INVITE_*` у `users` можуть лишатись у БД (приховані в адмінці).
+- **AI_ENABLED=false** → кнопка «AI-аналітика» покаже «ще не сформована» (очікувано).
+- Модуль **харчування** — в обговоренні, не в проді.
+- Не комітити: `fit_nutrition_full_145.xlsx`, `~$*.xlsx`.
+
+---
+
+## Ключові callbacks (додатково до матриці)
+
+```
+# Цикл (реєстрація)
+REG_CYCLE_INTRO, REG_CYCLE_FILL_NOW, REG_CYCLE_FILL_LATER
+CY_ST, CY_LEN, CY_BLD, CY_LSKP
+
+# Цикл (профіль)
+PROFILE_EDIT_CYCLE, PROFILE_CYCLE_EDIT_LEN, PROFILE_CYCLE_EDIT_BLEED
+PROFILE_CY_LEN, PROFILE_CY_BLD
+
+# Мої вправи
+MY_EX_MENU, MY_EX_ADD, MY_EX_LIST, MY_EX_G:*, MY_EX_ITEM:*
+PLAN_GROUP:__myex__, PLAN_EXERCISE:c_<uuid>
+
+# AI / goals (раніше)
+AI_ANALYTICS, COACH_AI_ANALYTICS, COACH_BODY_GOALS
+```
+
+---
+
+## Підключення AI
+
+Railway: `OPENAI_API_KEY`, `AI_ENABLED=true`, `AI_MODEL=gpt-4o-mini`.  
+Покроково: **Підключення_AI_покроково.md**, **AI_Integration_FIT3_Basic.md**.
