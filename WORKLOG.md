@@ -2137,10 +2137,23 @@
     - Доповнення до `8dd4537` (той самий екран `askInviteAiIntro`).
     - Синхронізація в `CHANGELOG.md`, `Бізнес-логіка` — **pending**.
 
+- (status: shipped) 2026-05-20 — Ops: повторний деплой Railway після паузи deploy
+  - **Scope**: деплой / Railway
+  - **Проблема**: на [Railway](https://railway.com/) з’являлось **Limited Access** / **Deploys have been paused temporarily** — пуші `8ca8692`, `076787d` не розгорнулись; сервіс лишався **Online** на старій збірці.
+  - **Що зроблено**: порожній коміт `chore: trigger Railway redeploy` → `git push origin main`, щоб знову запустити webhook/деплой після відновлення платформи.
+  - **Код на `main` без змін** (лише тригер деплою); фічі вже в `8ca8692` + `076787d`.
+  - **Commit**: `24058b0`
+  - **Тест-план (мінімум)**:
+    - Railway → **Deployments** → новий build **Success**.
+    - Бот: підказки тренера перед «Продовжити заповнення» (`8ca8692`).
+  - **Нотатки / ризики**:
+    - Якщо знову **Limited Access** — Redeploy вручну або Billing/Usage в dashboard Railway.
+
 ---
 
 ## Синхронізація з документацією
 
+- **2026-05-20**: Railway redeploy trigger (`24058b0`) — у `WORKLOG`; без змін коду.
 - **2026-05-20**: підказки перед REG_AI intro за роллю (`8ca8692`) — у `WORKLOG`; перенос у проектні доки — **pending**.
 - **2026-05-20**: invite-onboarding — роль після місця / учень для інвайту тренера (`8dd4537`) — у `WORKLOG`; перенос у проектні доки — **pending**.
 - **2026-05-20**: адмін 🔑 Інвайти — USED_* у списку + `adminGetInviteInventoryCounts` (`80513b0`) — у `WORKLOG`; перенос у проектні доки — **pending**.
