@@ -12,6 +12,7 @@
 | `BOT_TOKEN` | Токен бота від @BotFather |
 | `SUPABASE_URL` | URL проєкту Supabase (без слеша в кінці) |
 | `SUPABASE_ANON_KEY` | Ключ anon (public) Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Рекомендовано.** Service role для адмін-бота (список «Користувачі», пошук). Без нього при увімкненому RLS список може бути порожнім, хоча в SQL Editor дані є |
 
 ## Опційні змінні
 
