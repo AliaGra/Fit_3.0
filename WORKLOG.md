@@ -2447,6 +2447,28 @@
     - Пункт «Знайти тренера» → **Мій тренер**; «Авто-план» → **План тренувань**.
   - **Commit**: `9ed2df2`
 
+- (status: shipped) 2026-06-02 — My Exercises: обхід RLS для `user_custom_exercises` через admin client
+  - **Scope**: тренування / my exercises / supabase access
+  - **Проблема**: при створенні власної вправи бот повертав `❌ Не вдалося зберегти вправу`, у логах Railway: `new row violates row-level security policy for table "user_custom_exercises"`.
+  - **Що змінилось**:
+    - У `lib/supabase.js` для операцій `user_custom_exercises` замінено `getClient()` на `getAdminClient()` (використовується `SUPABASE_SERVICE_ROLE_KEY`):
+      - `insertUserCustomExercise`
+      - `getUserCustomExerciseById`
+      - `listUserCustomExercisesByGroup`
+      - `listAllUserCustomExercises`
+      - `getUserCustomExerciseSubgroups`
+      - `searchUserCustomExercises`
+    - Це знімає блокування RLS для backend-бота без зміни SQL policy таблиці.
+  - **Залежності / env**:
+    - На середовищі деплою має бути задано `SUPABASE_SERVICE_ROLE_KEY`.
+    - Якщо ключ не задано, `getAdminClient()` fallback-иться на anon client і проблема RLS повернеться.
+  - **Файли**: `lib/supabase.js`
+  - **Тест-план (мінімум)**:
+    - `💪 Тренування → ⭐ Мої вправи → ➕ Додати мою вправу` → збереження успішне.
+    - `📂 Мої вправи` → нова вправа відображається в списку/картці.
+    - Пошук/фільтрація власних вправ працює без RLS-помилок у логах.
+  - **Commit**: `e694e04`
+
 - (status: shipped) 2026-05-20 — Ops: повторний деплой Railway після паузи deploy
   - **Scope**: деплой / Railway
   - **Проблема**: на [Railway](https://railway.com/) з’являлось **Limited Access** / **Deploys have been paused temporarily** — пуші `8ca8692`, `076787d` не розгорнулись; сервіс лишався **Online** на старій збірці.
@@ -2463,6 +2485,7 @@
 
 ## Синхронізація з документацією
 
+- **2026-06-02**: my exercises — обхід RLS через `getAdminClient` (`e694e04`) — у `WORKLOG`; перенос у проектні доки — **pending**.
 - **2026-05-23**: учень (solo) — Підказки: окремий набір без тренера (`9ed2df2`) — у `WORKLOG`; перенос у проектні доки — **pending**.
 - **2026-05-23**: учень — Підказки: 4 розділи + кнопка у меню (`35be7f1`) — у `WORKLOG`; перенос у проектні доки — **pending**.
 - **2026-05-21**: тренер — Підказки: 4 нові розділи + пункт 9 AI (`cc8d6d8`) — у `WORKLOG`; перенос у проектні доки — **pending**.
