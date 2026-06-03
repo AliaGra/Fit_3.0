@@ -2550,6 +2550,21 @@
   - **Commit**: `9ec0f70`
   - **Push**: `main` → `origin/main` (`ed93c5e..9ec0f70`)
 
+- (status: shipped) 2026-06-02 — Власник закладу: кнопка «Контакти та адреса» (HTML + збереження)
+  - **Scope**: власник закладу / bugfix
+  - **Екран / меню**: `Мій заклад → ✏️ Контакти та адреса`
+  - **Проблема**: кнопка не відкривала екран — Telegram відхиляв повідомлення через `parse_mode: Markdown` і `_` у посиланнях (t.me, instagram).
+  - **Що змінилось**:
+    - `showContactsMenu` — `parse_mode: HTML` + `escapeHtml` для полів контактів.
+    - Збереження контактів і групових: `updateVenueByManager`, `replaceVenueFacetsByManager` (`getAdminClient` + перевірка `venue_managers`).
+  - **Callback/FSM**: `VO_CONTACTS`, `VO_EDIT_*`, `VO_GROUP_TOGGLE`
+  - **Файли**: `lib/venueOwner.js`, `lib/supabase.js`
+  - **Тест-план (мінімум)**:
+    1. Власник з прив’язаним закладом → **Контакти та адреса** — меню відкривається.
+    2. Змінити телефон/Telegram → **✅ Збережено**; прев’ю «Як бачать учні» показує нові дані.
+  - **Commit**: `5156da0`
+  - **Push**: `main` → `origin/main` (`8f6328c..5156da0`)
+
 - (status: shipped) 2026-05-20 — Ops: повторний деплой Railway після паузи deploy
   - **Scope**: деплой / Railway
   - **Проблема**: на [Railway](https://railway.com/) з’являлось **Limited Access** / **Deploys have been paused temporarily** — пуші `8ca8692`, `076787d` не розгорнулись; сервіс лишався **Online** на старій збірці.
@@ -2566,6 +2581,7 @@
 
 ## Синхронізація з документацією
 
+- **2026-06-02**: власник закладу — контакти HTML + service role (`5156da0`) — у `WORKLOG`; перенос у проектні доки — **pending**.
 - **2026-06-02**: власник закладу — підказки при реєстрації (`9ec0f70`) — у `WORKLOG`; перенос у проектні доки — **pending**.
 - **2026-06-02**: власник закладу — підказки меню 💡 (`ed93c5e`) — у `WORKLOG`; перенос у проектні доки — **pending**.
 - **2026-06-02**: власник закладу — роль `venue_owner`, фаза 0 (`7c71f39`) — у `WORKLOG`; перенос у проектні доки — **pending**.
