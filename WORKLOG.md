@@ -2522,7 +2522,6 @@
       - **В першу чергу** (6 пунктів): прив’язка, контакти, групові, перегляд картки, тренери, ціни/розклад;
       - **Профіль закладу**, **Ціни та розклад**, **Тренери закладу**, **Межі ролі (фаза 0)**.
     - Чеклісти з ✅ у `bot_state` (`venueOwnerFirstStepsDone`, `venueOwnerProfileHintsDone`, …); ключі зберігаються при `State.clear`.
-    - Після реєстрації — короткий огляд перших кроків (`lib/registration.js`).
     - Маршрутизація за роллю: `MENU_HINTS` для `venue_owner` → `VenueOwnerHints` (`lib/router.js`).
   - **Callback/FSM**: `VOH_FIRST`, `VOH_F_TXT`, `VOH_PROF`, `VOH_CNT`, `VOH_CCH`, `VOH_LIM`, префікси `VOH_FS_*`, `VOH_PR_*`, `VOH_CN_*`, `VOH_CC_*`, `VOH_LM_*`
   - **Файли**: `lib/venueOwnerHints.js`, `lib/venueOwnerFirstSteps.js`, `lib/venueOwnerHintSections.js`, `lib/constants.js`, `lib/router.js`, `lib/venueOwner.js`, `lib/state.js`, `lib/registration.js`, `WORKLOG.md`
@@ -2532,6 +2531,24 @@
     3. З пунктів підказок кнопки ведуть у **Мій заклад** (контакти, групові, прев’ю, тренери, ціни).
   - **Commit**: `ed93c5e`
   - **Push**: `main` → `origin/main` (`a2e933c..ed93c5e`)
+
+- (status: shipped) 2026-06-02 — Власник закладу: підказки при реєстрації (не текст учня/тренера)
+  - **Scope**: власник закладу / реєстрація
+  - **Екран / меню**: `Нова реєстрація → 🏢 Власник закладу`; інвайт → вибір ролі → підказки
+  - **Проблема**: після вибору ролі показувався текст учня («заміри, AI, план») або вів у анкету учня.
+  - **Що змінилось**:
+    - `buildRegIntroHintsText` / `askInviteVenueOwnerIntro` — текст з `venueOwnerFirstSteps` (прив’язка, контакти, тренери…).
+    - Інвайт: кнопка **Завершити реєстрацію** замість «Продовжити заповнення» (заміри).
+    - Звичайна реєстрація: після імені/прізвища — одразу `finishRegistration`, без стать/цілей/замірів.
+    - `proceedAfterInviteRoleChosen` для `venue_owner` → окремий intro, не `askInviteAiIntro` учня.
+    - Підпис ролі в invite-prefill: «Власник закладу».
+  - **Callback/FSM**: `REG_INVITE_AI_INTRO`, `REG_AI_LATER`, `REG_AI_CONTINUE`, `REG_ROLE_VENUE_OWNER`
+  - **Файли**: `lib/registration.js`, `WORKLOG.md`
+  - **Тест-план (мінімум)**:
+    1. Нова реєстрація → Власник закладу → ім’я → прізвище → завершення без анкети учня.
+    2. Універсальний інвайт → Власник закладу → текст про заклад, не про заміри → Завершити реєстрацію.
+  - **Commit**: `9ec0f70`
+  - **Push**: `main` → `origin/main` (`ed93c5e..9ec0f70`)
 
 - (status: shipped) 2026-05-20 — Ops: повторний деплой Railway після паузи deploy
   - **Scope**: деплой / Railway
@@ -2549,7 +2566,8 @@
 
 ## Синхронізація з документацією
 
-- **2026-06-02**: власник закладу — підказки (`ed93c5e`) — у `WORKLOG`; перенос у проектні доки — **pending**.
+- **2026-06-02**: власник закладу — підказки при реєстрації (`9ec0f70`) — у `WORKLOG`; перенос у проектні доки — **pending**.
+- **2026-06-02**: власник закладу — підказки меню 💡 (`ed93c5e`) — у `WORKLOG`; перенос у проектні доки — **pending**.
 - **2026-06-02**: власник закладу — роль `venue_owner`, фаза 0 (`7c71f39`) — у `WORKLOG`; перенос у проектні доки — **pending**.
 - **2026-06-02**: тренер — Підказки: «План тренувань для учня» (`586b967`) — у `WORKLOG`; перенос у проектні доки — **pending**.
 - **2026-06-02**: my exercises — обхід RLS через `getAdminClient` (`e694e04`) — у `WORKLOG`; перенос у проектні доки — **pending**.
