@@ -1,7 +1,7 @@
 # CALLBACK → FSM STATE → MODULE MATRIX
 
-**Версія:** 1.10  
-**Дата:** 19.05.2026  
+**Версія:** 1.11  
+**Дата:** 03.06.2026  
 **Призначення:** Матриця співвідношень `callback_data`, FSM-станів та обробників. **Продакшен:** Node.js (`lib/router.js`). Розділ «Історичний еталон GAS» збережено лише для порівняння.
 
 ---
@@ -11,7 +11,7 @@
 Критично: **перший збіг виграє**. Порядок нижче — фактичний (оновлено за кодом `handleCallback`).
 
 1. `BACK_TO_MAIN` → очищення state, `Menu.show`
-1a. **`VENUES_MENU`**, **`VENUES_GEO`**, **`VENUES_TEXT`**, **`VENUES_ORG`**, **`VENUES_RADIUS`**, **`VENUES_PICK`**, **`VENUES_CARD`**, **`VENUES_SEARCH_NEW`** (у коді `VENUES_SN`), **`REG_VENUE_OPEN`**, **`REG_VENUE_SKIP`**, **`PROFILE_COACH_VENUES`** → `lib/venues.js` (`Venues.handleCallback`) — рання гілка після `BACK_TO_MAIN`
+1a. **`VENUES_MENU`**, **`VENUES_GEO`**, **`VENUES_TEXT`**, **`VENUES_NAME_SEARCH`**, **`VEN_LOC_OBL`**, **`VEN_LOC_CIT`**, **`VENUES_ORG`**, **`VENUES_STUDIO`**, **`VENUES_SECTION`**, **`VENUES_GROUP`**, **`VENUES_RADIUS`**, **`VENUES_PICK`**, **`VENUES_CARD`**, **`VENUES_PRICES`**, **`VENUES_SEARCH_NEW`** (у коді `VENUES_SN`), **`REG_VENUE_OPEN`**, **`REG_VENUE_SKIP`**, **`PROFILE_COACH_VENUES`** → `lib/venues.js` (`Venues.handleCallback`) — рання гілка після `BACK_TO_MAIN`
 2. `MENU_TRAINING` → підменю тренувань
 2a. **`MY_EX_MENU`**, **`MY_EX_ADD`**, **`MY_EX_LIST`**, **`MY_EX_BACK`**, **`MY_EX_TOP`**, префікси **`MY_EX_G:`**, **`MY_EX_SKIP:`**, **`MY_EX_ITEM:`** → `lib/myExercises.js` (`MyExercises.handleCallback`); текст `MY_EX_NAME_INPUT` → `handleTextMessage`
 3. `AI_ANALYTICS` → `lib/ai/bodyAnalysis` (повний аналіз)
@@ -25,8 +25,9 @@
 11. `CANCEL_ACTION` → `Menu.show`
 12. `COACH_BOOK` → `Schedule.startBookStudent` (окрема гілка; не загальний `Schedule.handleCallback` з п.15)
 13. `REG_NEW` → `Registration.handleCallback` (тестовий режим: показ повідомлення про closed beta + посилання на підтримку)
-13a. `DEV_CONTACT_MENU` → `Menu.showDeveloperContactMenu`
-13b. `DEV_CONTACT_OFFER` → `Menu.sendOfferText` (показ `OFERTA.md`)
+13a. `MENU_TERMS_OF_USE` → `lib/termsOfUse.showTermsOfUse` (умови за роллю)
+13b. `DEV_CONTACT_MENU` → `Menu.showDeveloperContactMenu`
+13c. `DEV_CONTACT_OFFER` → `Menu.sendOfferText` (показ `OFERTA.md`)
 14. `INV_ACC_*`, `INV_AVD_*` (інвайт: зони) → `Coach.handleCallback`
 15. **`Registration.handleCallback`** — лише реєстраційні та пов’язані кроки; якщо повертає `true`, вихід
 16. Префікси медпрофілю `MC_*` → `MedicalProfile.handleCallback`
@@ -50,7 +51,7 @@
   - callback **`ADM_VSKD`** — пропуск району в адмін-чернетці закладу;
   - callback **`REG_DSTR_SKP`** — пропуск району у реєстрації після вибору НП;
   - callback **`PR_DSTR_SKP`** — пропуск району в профілі після редагування міста.
-- Інакше — стандартне адмін-меню (`ADM_MENU`, `ADM_STATS`, `ADM_USERS`, `ADM_INVITES`, …). **👥 Користувачі** / статистика: лише реальні акаунти (`user_id` не `INVITE_%`); невикористані коди — `ADM_INVITES`.
+- Інакше — стандартне адмін-меню (`ADM_MENU`, `ADM_STATS`, `ADM_USERS`, `ADM_INVITES`, …). **👥 Користувачі** / статистика: лише реальні акаунти (`user_id` не `INVITE_%`); невикористані коди — `ADM_INVITES`. У картці користувача з роллю **venue_owner**: `ADM_UVOWN`, `ADM_UVOWN_OK` — зняти з закладу; `ADM_VVW` — картка закладу.
 
 ### Довідник закладів (основний бот + адмін): деталізація
 
@@ -62,7 +63,10 @@
 | `VENUES_SEARCH_NEW` | — (`VENUES_SN`) | — | `venues.js` | Підменю пошуку нового закладу (гео / текст / тип орг.) |
 | `VENUES_CARD` | `:venueId` | — | `venues.js` | Картка закладу з «Мої заклади» / пошуку |
 | `VENUES_GEO` | — | `venue_wait_location` тощо | `venues.js` | Старт гео-пошуку |
-| `VENUES_TEXT` | — | `venue_text_search` тощо | `venues.js` | Текстовий пошук (область/місто/назва; місто може підставлятись з профілю) |
+| `VENUES_TEXT` | — | `venue_loc_oblast_input` / `venue_loc_city_input` | `venues.js` | Пошук за **областю та містом** через `city_list` (`VEN_LOC_OBL`, `VEN_LOC_CIT`) |
+| `VENUES_NAME_SEARCH` | — | `venue_name_search` | `venues.js` | Пошук за частиною назви (мін. 3 літери) |
+| `VEN_LOC_OBL` | `:oblast` / `__BACK__` | — | `venues.js` | Вибір області з довідника |
+| `VEN_LOC_CIT` | `:city` | — | `venues.js` | Вибір НП → список закладів |
 | `VENUES_ORG` | `:pick` / `:clear` / `:code` | — | `venues.js` | Фільтр типу організації |
 | `VENUES_RADIUS` | `:1`…`:10` | — | `venues.js` | Радіус гео-пошуку |
 | `VENUES_PICK` | `:venueId` | — | `venues.js` | Обрати заклад (реєстрація / профіль) |
@@ -92,6 +96,7 @@
 | Amenities | `ADM_VAT`, `ADM_VAOK`, `ADM_VACL` | Тогл коду «що є в закладі», готово, скинути |
 | Години закладу | `ADM_VHRS`, `ADM_VHD` | Редактор графіку по днях тижня |
 | Розклад групових | `ADM_VSCH`, `ADM_VSA`, `ADM_VSAF`, `ADM_VSW`, `ADM_VSG`, `ADM_VSD` | Меню розкладу, додати слот, додати для коду, weekday, вибір group_class, видалити |
+| Власник закладу | `ADM_VOWN`, `ADM_VOWN_RM`, `ADM_VOWN_OK` | Призначити власника (ввід `chat_id`); зняти власника (заклад лишається) |
 | Видалення закладу | `ADM_VDEL`, `ADM_VDOK` | Запит і підтвердження видалення |
 | Довідник цін | `ADM_VPR`, `ADM_VPG`, `ADM_VGC`, `ADM_VGCC`, `ADM_VGCD`, `ADM_VPM`, `ADM_VPMA`, `ADM_VPMD`, `ADM_VPA`, `ADM_VPAP`, `ADM_VPAA`, `ADM_VPAD` | Меню цін, підрозділи групові/абонементи/інші, додавання/видалення рядків; **у повідомленнях після оновлення — суфікс `:venueId`** |
 
