@@ -1,6 +1,6 @@
 # Передача контексту для нового чату — FIT 3.0
 
-**Дата оновлення handoff:** 19.05.2026  
+**Дата оновлення handoff:** 03.06.2026  
 **Проєкт:** Telegram-бот FIT 3.0 (Node.js, Railway, Supabase)  
 **Репо:** https://github.com/AliaGra/Fit_3.0  
 **Гілка:** `main` (перед новим чатом — `git pull`)
@@ -12,21 +12,25 @@
 ```
 Проєкт: FIT 3.0 (Node, Supabase, Railway). Handoff: @HANDOFF_NEW_CHAT.md
 
-Останні коміти (main, травень 2026):
-• 8ed0a12 — адмін-бот: «Користувачі» без дубля після активації інвайту (фільтр user_id INVITE_%)
-• 336510c — реєстрація: intro циклу/менопаузи; профіль «Цикл і менопауза»; роль Тренер→Учень
-• fd40667 — «Мої вправи» + ручний план (custom_exercise_id)
-• e92e07a — notify: тренер прив’язав заклад → користувачі з user_venues
-• 1be26af — notify нового закладу за oblast/city/district
+Останні коміти (main, червень 2026):
+• 800f7a8 — власник закладу: картка тренера (PVCH) без інвайт-підказок і кнопок учня
+• 6da6d83 — docs sync WORKLOG → CHANGELOG, Зміни_логіки, Бізнес-логіка, CALLBACK_FSM
+• 537b296 — адмін: зняття власника закладу без видалення клубу (ADM_VOWN_RM, ADM_UVOWN)
+• b35ff46 — «Клуби, студії»: пошук область/НП з city_list (VEN_LOC_OBL, VEN_LOC_CIT)
+• 1207ab4 — головне меню: Умови користування за роллю (MENU_TERMS_OF_USE)
+• 7c71f39 — роль venue_owner, фаза 0 (venue_managers, lib/venueOwner.js)
 
-Міграція на Supabase (перевірити!): supabase_migration_user_custom_exercises.sql — для «Мої вправи».
+Міграції на Supabase (перевірити!):
+• supabase_migration_venue_managers.sql — власник закладу (venue_managers)
+• supabase_migration_user_custom_exercises.sql — «Мої вправи»
 
-Доки синхронізовані: CHANGELOG, Зміни_логіки, Бізнес-логіка v1.8, CALLBACK_FSM v1.10, WORKLOG.
+Доки: README, Бізнес-логіка v1.9, CALLBACK_FSM v1.11, Зміни_логіки, CHANGELOG, WORKLOG.
 
-Заклади (venues) — окремо: @HANDOFF_VENUES_AND_SEARCH.md
+Заклади: @HANDOFF_VENUES_AND_SEARCH.md
 
 Задача: [опиши що потрібно]
-Не коммитити / не пушити без моєї просьби. Не додавати fit_nutrition_*.xlsx у git.
+Не коммитити / не пушити без моєї просьби. Не додавати fit_nutrition_*.xlsx, ~$*.xlsx у git.
+WORKLOG оновлюю окремими комітами після коду.
 ```
 
 ---
@@ -36,11 +40,11 @@
 | Пріоритет | Документ | Навіщо |
 |-----------|----------|--------|
 | 1 | **README.md** | Стек, структура `lib/`, cron, посилання |
-| 2 | **Бізнес-логіка_Gym_3_0_v1.1.md** (v1.8) | Продукт і правила: реєстрація, інвайти, розклад, плани, профіль |
-| 3 | **CALLBACK_FSM_MODULE_MATRIX.md** (v1.10) | Callback → FSM → модуль; порядок у `lib/router.js` |
+| 2 | **Бізнес-логіка_Gym_3_0_v1.1.md** (v1.9) | Продукт: ролі, інвайти, розклад, плани, venues, venue_owner |
+| 3 | **CALLBACK_FSM_MODULE_MATRIX.md** (v1.11) | Callback → FSM → модуль; порядок у `lib/router.js` |
 | 4 | **Схемы_технических_данных_v2.md** | Таблиці Supabase, зв’язки |
 | 5 | **Зміни_логіки_та_функціоналу.md** | Хронологія змін по датах |
-| 6 | **WORKLOG.md** | Що зроблено в розробці + sha комітів |
+| 6 | **WORKLOG.md** | Робоча пам’ять + sha комітів |
 | 7 | **CHANGELOG.md** | Коротко для користувача (Unreleased) |
 
 **Операційно:** `DEPLOY.md` (Railway, env, webhook).  
@@ -60,35 +64,30 @@
 
 ---
 
-## Останнє на main (травень 2026)
+## Останнє на main (червень 2026)
 
-### Адмін-бот — дубль у «Користувачі» (`8ed0a12`)
-- Після `replaceInviteWithChatId` у БД: реальний user + заготовка `USED_INVITE_*`.
-- **👥 Користувачі** / статистика: `adminRealUsersQuery()` — без `user_id LIKE 'INVITE_%'`.
-- Активні коди — лише **🔑 Інвайти**.
+### Власник закладу — роль `venue_owner` (фаза 0, `7c71f39` …)
+- Реєстрація **🏢 Власник закладу**; прив’язка через адмін (`venue_managers`, `ADM_VOWN`).
+- Меню: **Мій заклад**, **Тренери закладу**, **Клуби, студії**, **Зв’язок з розробником**; без «Мій профіль» і без 💡 підказок.
+- Кабінет: `lib/venueOwner.js` — контакти, групові, прев’ю закладу (service role).
+- **Міграція:** `supabase_migration_venue_managers.sql`.
 
-### Реєстрація / профіль — цикл (`336510c`)
-- Після **Жінка** → `REG_CYCLE_INTRO` (зараз / пізніше).
-- Профіль (жінка): **🌸 Цикл і менопауза** (`PROFILE_EDIT_CYCLE`, `PROFILE_CY_*`, `CY_ST`…).
-- Роль на `/start`: **Тренер** → **Учень**.
+### Власник: картка тренера (`800f7a8`)
+- **Тренери закладу** → `PVCH`: без інвайт-тексту й кнопок учня; **До списку тренерів** (`VO_COACHES`).
+- Реалізація: `lib/coach.js` → `showPublicVenueCoachCard` (перевірка `venue_owner`).
 
-### «Мої вправи» (`fd40667`)
-- `💪 Тренування → ⭐ Мої вправи` — `lib/myExercises.js`.
-- Ручний план: `PLAN_EXERCISE:c_<uuid>`, `PLAN_GROUP:__myex__`.
-- **Міграція:** `supabase_migration_user_custom_exercises.sql` (таблиця `user_custom_exercises`, колонка `training_plan_exercises.custom_exercise_id`).
-- Не в UI: імпорт з каталогу в бібліотеку; авто-план custom не підмішує.
+### Умови користування (`1207ab4`, `6922fb6`, `29a2ecd`, `f119b80`)
+- **📜 Умови користування** у головному меню всіх ролей; `lib/termsOfUse.js`, `MENU_TERMS_OF_USE`.
 
-### Notify: тренер у закладі (`e92e07a`)
-- Перша `linkCoachVenue` → `lib/coachVenueNotify.js` → користувачі з `user_venues`.
-- `COACH_VENUE_NOTIFY_DISABLED=1` — вимкнути.
+### Пошук закладів (`b35ff46`)
+- **Клуби, студії** → область/НП з `city_list` (`VEN_LOC_OBL`, `VEN_LOC_CIT`); окремо пошук за назвою.
 
-### Notify: новий заклад (`1be26af`)
-- Після збереження закладу в адміні → `lib/venueNewNotify.js` за `oblast+city(+district)`.
+### Адмін: зняття власника (`537b296`)
+- **👑 Зняти власника** на картці закладу; **Зняти з закладу** на картці користувача.
+- Заклад не видаляється; `venue_managers` delete; роль → `student` без інших прив’язок.
 
-### Інвайти (загальне)
-- Help-бот: оператор генерує універсальний `INVITE_*`.
-- Активація: гейт оферти → `activateInvite` / `linkCoachByInviteCode`.
-- Node: `replaceInviteWithChatId` — INSERT реального user + перенос FK; заготовка → `USED_*`.
+### Документація (`6da6d83`)
+- Sync WORKLOG → `CHANGELOG`, `Зміни_логіки`, `Бізнес-логіка` v1.9, `CALLBACK_FSM` v1.11.
 
 ---
 
@@ -96,10 +95,10 @@
 
 | Файл | Статус |
 |------|--------|
+| `supabase_migration_venue_managers.sql` | **Потрібна** для `venue_owner` |
 | `supabase_migration_user_custom_exercises.sql` | **Потрібна** для «Мої вправи» |
 | `supabase_migration_users_venues_location_notify.sql` | oblast/district (notify закладів) |
-| `supabase_migration_coach_schedule_work_hours_by_weekday.sql` | різний час по днях |
-| `supabase_migration_user_body_goals.sql` | бажані параметри + goals_analysis |
+| `supabase_migration_venues.sql` + seed | довідник закладів |
 | Інші `supabase_migration_*.sql` | за модулем — див. README / WORKLOG |
 
 ---
@@ -114,21 +113,15 @@
 | FSM | `lib/state.js` + `lib/constants.js` |
 | AI | `lib/ai/*`, `AI_ENABLED`, OpenAI gpt-4o-mini |
 
-**Ключові модулі:** `registration.js`, `profile.js`, `coach.js`, `schedule.js`, `training.js`, `trainingPlan.js`, `planGenerator.js`, `venues.js`, `bodyGoals.js`, `myExercises.js`, `adminBot.js`, `helpBot.js`.
+**Ключові модулі:** `registration.js`, `profile.js`, `coach.js`, `schedule.js`, `training.js`, `venues.js`, `venueOwner.js`, `termsOfUse.js`, `adminBot.js`, `adminVenues.js`, `helpBot.js`.
 
-**Матриця callback:** `CALLBACK_FSM_MODULE_MATRIX.md` v1.10 — на початку файлу порядок Node у `router.js` (venues п.1a, `MY_EX_*` п.2a, Registration, Coach, Profile, Schedule…).
-
----
-
-## Довідник закладів (venues)
-
-Окремий handoff: **`HANDOFF_VENUES_AND_SEARCH.md`** (коміти, callback `VENUES_*`, `ADM_V*`, deep link `venue_<id>`, `pvch_<chatId>`).
+**Ролі:** `student`, `coach`, `venue_owner` (`lib/constants.js` → `ROLES`).
 
 ---
 
-## Cron (Railway / зовнішній scheduler)
+## Cron
 
-- `GET /cron/reminders?secret=...` — нагадування учням
+- `GET /cron/reminders?secret=...` — нагадування учням (вікно ~2–3 год до слоту; `REMINDER_HOURS_BEFORE`)
 - `GET /cron/plan-revision?secret=...` — ревізія плану тренеру
 - `GET /cron/subscription-reminders?secret=...` — абонемент залу
 
@@ -139,79 +132,39 @@
 ## Env (часто потрібні)
 
 ```
-BOT_TOKEN, SUPABASE_URL, SUPABASE_ANON_KEY
+BOT_TOKEN, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 ADMIN_BOT_TOKEN, ADMIN_CHAT_ID
 HELP_BOT_TOKEN
-OPENAI_API_KEY, AI_ENABLED=true   # опційно
-COACH_VENUE_NOTIFY_DISABLED=1    # вимкнути notify тренера в закладі
-VENUE_NEW_NOTIFY_DISABLED=1      # якщо є — вимкнути notify нового закладу
+OPENAI_API_KEY, AI_ENABLED=true
+COACH_VENUE_NOTIFY_DISABLED=1
+VENUE_NEW_NOTIFY_DISABLED=1
+CRON_SECRET / REMINDER_CRON_SECRET
 ```
-
----
-
-## Що перевірити після змін
-
-1. **Інвайт:** help → код → основний бот → оферта → активація → в адміні **один** користувач (`8ed0a12`).
-2. **Мої вправи:** міграція виконана → додати вправу → ручний план → `custom_exercise_id` у БД.
-3. **Цикл:** жінка-учень/тренер — intro «пізніше» / «зараз»; профіль → Цикл і менопауза.
-4. **Notify закладу:** тренер прив’язує заклад → push користувачам з «Мої заклади».
-5. **AI-аналітика після invite:** `entity_id` оновлюється в `replaceInviteWithChatId` — для нових учнів має працювати; старі — після оновлення замірів.
-
----
-
-## Реалізовано раніше (стисло — body goals + AI)
-
-Деталі в `WORKLOG` / `Бізнес-логіка` §7a–7c.
-
-- **`user_body_goals`** — бажані параметри (тренер invite/картка, реєстрація); `lib/bodyGoals.js`, `analyzeGoalsVsCurrentState`.
-- **`ai_generated_content`** — body_analysis; `lib/ai/bodyAnalysis.js`; кнопки `AI_ANALYTICS`, `COACH_AI_ANALYTICS`.
-- **Teen-режим:** `users.teen_mode`, `confirmed_by_parent`, `age_group`.
-- **`lib/ai/goalsVsCurrent.js`** — AI-переказ аналізу цілей.
-
----
-
-## Розклад тренера (березень 2026 — актуально)
-
-- **Різний час по днях:** `work_hours_by_weekday`, міграція `supabase_migration_coach_schedule_work_hours_by_weekday.sql`; підпис дня — `WEEKDAY_LONG_UA_MON0`.
-- **Мій розклад:** вікно 21 день; **Вільні слоти** — текст на 3 дні + «Інші вільні слоти».
-- **Календар:** BOOKED — 3 кнопки в ряд; перерва — «Відмінити»; легенда 🟡.
-- Док.: `Бізнес-логіка` §4.4.5–4.4.8, `CALLBACK_FSM` блоки SCH_*.
 
 ---
 
 ## Відомі обмеження / не зроблено
 
-- Імпорт вправи з каталогу в «Мої вправи» (`source_exercise_id`) — без UI.
-- Custom-вправи не в авто-генерації плану (лише ручний підбір).
-- Рядки `USED_INVITE_*` у `users` можуть лишатись у БД (приховані в адмінці).
-- **AI_ENABLED=false** → кнопка «AI-аналітика» покаже «ще не сформована» (очікувано).
+- `venue_owner` — фаза 0: редагування цін/розкладу через адміна, не в боті.
+- Імпорт вправи з каталогу в «Мої вправи» — без UI.
+- Рядки `USED_INVITE_*` у `users` можуть лишатись (приховані в адмінці).
 - Модуль **харчування** — в обговоренні, не в проді.
-- Не комітити: `fit_nutrition_full_145.xlsx`, `~$*.xlsx`.
+- Не комітити: `fit_nutrition_*.xlsx`, `~$*.xlsx`, локальні `.docx` чернетки.
 
 ---
 
-## Ключові callbacks (додатково до матриці)
+## Ключові callbacks (додатково)
 
 ```
-# Цикл (реєстрація)
-REG_CYCLE_INTRO, REG_CYCLE_FILL_NOW, REG_CYCLE_FILL_LATER
-CY_ST, CY_LEN, CY_BLD, CY_LSKP
+# Власник закладу
+VO_HUB, VO_COACHES, VO_CONTACTS, VO_GROUPS, PVCH (перегляд тренера)
+ADM_VOWN, ADM_VOWN_RM, ADM_UVOWN
 
-# Цикл (профіль)
-PROFILE_EDIT_CYCLE, PROFILE_CYCLE_EDIT_LEN, PROFILE_CYCLE_EDIT_BLEED
-PROFILE_CY_LEN, PROFILE_CY_BLD
+# Умови
+MENU_TERMS_OF_USE
 
-# Мої вправи
-MY_EX_MENU, MY_EX_ADD, MY_EX_LIST, MY_EX_G:*, MY_EX_ITEM:*
-PLAN_GROUP:__myex__, PLAN_EXERCISE:c_<uuid>
+# Заклади (користувач)
+VEN_LOC_OBL, VEN_LOC_CIT, VENUES_NAME_SEARCH, VENUES_MENU, PVCH
 
-# AI / goals (раніше)
-AI_ANALYTICS, COACH_AI_ANALYTICS, COACH_BODY_GOALS
+# Інвайти / цикл / мої вправи — див. CALLBACK_FSM_MODULE_MATRIX.md
 ```
-
----
-
-## Підключення AI
-
-Railway: `OPENAI_API_KEY`, `AI_ENABLED=true`, `AI_MODEL=gpt-4o-mini`.  
-Покроково: **Підключення_AI_покроково.md**, **AI_Integration_FIT3_Basic.md**.
