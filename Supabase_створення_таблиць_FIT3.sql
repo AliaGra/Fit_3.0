@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS users (
   glutes       numeric,
   arm          numeric,
   instagram    text,
+  telegram_username text,
   calendar_id  text,
   experience_start_date timestamptz,
   PRIMARY KEY (chat_id)
