@@ -118,6 +118,28 @@ const server = http.createServer((req, res) => {
       }
       return;
     }
+    if (url.startsWith('/cron/slot-auto-extend')) {
+      const secret = process.env.REMINDER_CRON_SECRET || '';
+      const qs = url.includes('?') ? url.split('?')[1] : '';
+      const q = qs ? new URLSearchParams(qs) : null;
+      if (!secret || (q && q.get('secret') === secret)) {
+        const SlotAutoExtend = require('./lib/slotAutoExtend');
+        SlotAutoExtend.runSlotAutoExtend()
+          .then((r) => {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(r));
+          })
+          .catch((err) => {
+            console.error('cron/slot-auto-extend', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: err.message }));
+          });
+      } else {
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+        res.end('Forbidden');
+      }
+      return;
+    }
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('FIT 3.0 bot. Webhook: POST /webhook');
     return;
