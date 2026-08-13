@@ -39,7 +39,7 @@ const server = http.createServer((req, res) => {
         Reminders.sendReminders()
           .then((r) => {
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ok: true, sent: r.sent }));
+            res.end(JSON.stringify({ ok: true, sent: r.sent, sent24: r.sent24, sent2: r.sent2 }));
           })
           .catch((err) => {
             console.error('cron/reminders', err.message);

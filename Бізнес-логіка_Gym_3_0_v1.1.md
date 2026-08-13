@@ -65,9 +65,9 @@
 
 **Деплой:** `git push` до `main` → автоматичний білд і рестарт. Зміни в коді вступають у силу після успішного деплою (1–3 хв).
 
-**Змінні середовища (Railway):** `BOT_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `REMINDER_CRON_SECRET`, `REMINDER_HOURS_BEFORE`.
+**Змінні середовища (Railway):** `BOT_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `REMINDER_CRON_SECRET`, `REMINDER_HOURS_BEFORE`, `REMINDER_HOURS_24`.
 
-**Нагадування учням:** Endpoint `GET /cron/reminders?secret=XXX` — надсилає учням повідомлення за N годин до тренування. Запускати через cron-job.org (кожну годину). Таблиця `reminders_sent` — запобігає дублікатам.
+**Нагадування учням:** Endpoint `GET /cron/reminders?secret=XXX` — щогодини (cron-job.org). Два вікна: **за 24 год** (шаблон: дата/час/тренер) і **за 2 год** (`REMINDER_HOURS_BEFORE`, AI або шаблон). Лише клієнту, статус BOOKED. Дедуп `reminders_sent` по `(slot_id, kind, slot_key)` — після переносу на новий час 24h надсилається знову. Міграція `supabase_migration_reminders_24h.sql`.
 
 ### Архітектура: Railway + Supabase; GAS лише для бібліотеки вправ
 
