@@ -55,7 +55,8 @@ d:\Fit 3.0 vs2.0\
 │   │   ├── aiClient.js   # OpenAI клієнт, isEnabled, chatCompletion, safeCall
 │   │   ├── aiValidator.js# Валідація plan comments, reminder, failure_analysis
 │   │   └── aiPrompts.js   # SYSTEM_PROMPTS, buildPlanCommentsPrompt, buildReminderPrompt, buildFailureAnalysisPrompt
-│   └── reports.js      # Звіти тренера (кількість тренувань, сума доходів)
+│   ├── reports.js      # Звіти тренера (кількість тренувань, сума доходів)
+│   └── broadcast.js    # Розсилка тренера/закладу: свої / потенційні, ліміт 1/добу, ads_opt_in
 ├── Supabase_створення_таблиць_FIT3.sql   # Еталон схеми БД
 └── Бізнес-логіка_Gym_3_0_v1.1.md         # Бізнес-правила, VETO, FSM
 ```
