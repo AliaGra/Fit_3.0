@@ -1,4 +1,4 @@
--- FIT 3.0: довідник закладів (клуби, студії, секції)
+-- MAYAG FIT: довідник закладів (клуби, студії, секції)
 -- Застосувати після наявності public у проєкті.
 -- Координати обовʼязкові; адреса опційна (див. бізнес-логіку в боті).
 
@@ -29,7 +29,10 @@ CREATE TABLE IF NOT EXISTS public.venues (
   instagram_url text,
   organization_type text NOT NULL,
   is_active boolean NOT NULL DEFAULT true,
+  moderation_status text NOT NULL DEFAULT 'approved'
+    CHECK (moderation_status IN ('pending', 'approved', 'rejected')),
   created_by_operator_chat_id text,
+  created_by_coach_chat_id text,
   CONSTRAINT venues_lat_range CHECK (latitude >= -90 AND latitude <= 90),
   CONSTRAINT venues_lng_range CHECK (longitude >= -180 AND longitude <= 180)
 );
