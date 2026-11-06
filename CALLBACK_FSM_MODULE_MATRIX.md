@@ -1,8 +1,10 @@
 # CALLBACK → FSM STATE → MODULE MATRIX
 
-**Версія:** 1.11  
-**Дата:** 03.06.2026  
+**Версія:** 1.12  
+**Дата:** 06.11.2026  
 **Призначення:** Матриця співвідношень `callback_data`, FSM-станів та обробників. **Продакшен:** Node.js (`lib/router.js`). Розділ «Історичний еталон GAS» збережено лише для порівняння.
+
+**06.11.2026:** хаби картки клієнта `COACH_STU_PROG` / `COACH_STU_FMT` / `COACH_STU_RPT` (`2faa40f`).
 
 ---
 
@@ -314,7 +316,7 @@ State.set(coachId, {
 
 ## 🟡 БЛОК 4: ІСТОРІЯ — застарілий префікс `HISTORY_*` (legacy)
 
-> **Node / FIT 3.0:** у `lib/training.js` **немає** обробників `HISTORY_*`. Актуальна історія тренувань — префікси **`HIST_*`**, callback **`HISTORY_MENU`**, модуль **`lib/history.js`**, порядок виклику в **`lib/router.js`** (п. 23–24 у розділі «Node.js: порядок»). Таблиці нижче збережено як опис старого GAS-флоу; для імплементації та тестів використовуйте **розділ «📗 БЛОК: ІСТОРІЯ ТРЕНУВАНЬ»** у цьому ж файлі.
+> **Node / MAYAG FIT:** у `lib/training.js` **немає** обробників `HISTORY_*`. Актуальна історія тренувань — префікси **`HIST_*`**, callback **`HISTORY_MENU`**, модуль **`lib/history.js`**, порядок виклику в **`lib/router.js`** (п. 23–24 у розділі «Node.js: порядок»). Таблиці нижче збережено як опис старого GAS-флоу; для імплементації та тестів використовуйте **розділ «📗 БЛОК: ІСТОРІЯ ТРЕНУВАНЬ»** у цьому ж файлі.
 
 ### Таблиця 4.1 (legacy): History Callbacks — не використовувати в Node
 
@@ -339,9 +341,13 @@ State.set(coachId, {
 | 40 | `COACH_STUDENTS` | `null` (Coach Menu) | Підменю «Мої учні» | **`Coach.handleCallback()`** → `showCoachStudentsHub` | Хаб: список учнів, архів, головне меню |
 | 40a | `COACH_STUDENTS_LIST` (`COACH_STUD_L`) | `null` | Показ списку | **`Coach.handleCallback()`** → `showStudentsList` | Активні учні (прямий список; також з інших місць, напр. запис на тренування) |
 | 41 | `COACH_ADD_STUDENT` | `null` (Coach Menu) | `coach_add_student_name` | **`Coach.handleCallback()`** | Додати учня |
-| 42 | `VIEW_STUDENT:{chatId}` | `null` | Показ картки | **`Coach.handleCallback()`** | Картка учня |
+| 42 | `VIEW_STUDENT:{chatId}` | `null` | Показ картки | **`Coach.handleCallback()`** | Картка клієнта (хаби: Програма / Формат·тариф / Звіт) |
+| 42a | `COACH_STU_PROG:{chatId}` | `null` | Хаб «Програма тренувань» | **`Coach.showStudentProgramMenu`** | План, дні, бажані, активність, досвід, обміри, медицина, архів |
+| 42b | `COACH_STU_FMT:{chatId}` | `null` | Хаб «Формат / тариф» | **`Coach.showStudentFormatMenu`** | Формат+клуб, тип тренування, свій тариф |
+| 42c | `COACH_STU_RPT:{chatId}` | `null` | Хаб «Звіт / Аналітика» | **`Coach.showStudentReportMenu`** | Журнал тренувань, AI-аналітика |
+| 42d | `COACH_STUDENT_HEALTH_MENU:{id}` / `COACH_STUDENT_BODY_MENU:{id}` | `null` | → `COACH_STU_PROG` | Alias на Програму (legacy) | Старі кнопки/підказки |
 | 43 | `COACH_TRAIN:{chatId}` | `null` | `training_group` | `Training.handleCallback()` | Тренувати учня (Coach Mode) |
-| 44 | `COACH_HISTORY:{chatId}` | `null` | меню історії (`hist_menu`) | **`Coach.handleCallback()`** → `History.showHistoryMenu` | Історія учня |
+| 44 | `COACH_HISTORY:{chatId}` | `null` | меню історії (`hist_menu`) | **`Coach` → `History.showHistoryMenu`** | Журнал тренувань клієнта (з хабу Звіт) |
 | 45 | `COACH_BOOK:{chatId}` | `null` | старт запису | **`router.js` → `Schedule.startBookStudent`** (рання гілка; див. порядок router) | Записати учня |
 | 46 | `COACH_PROFILE:{chatId}` | `null` | Показ профілю | `Profile.handleCallback()` | Профіль учня |
 | 46h | `COACH_BODY_GOALS:{chatId}` | `null` (картка учня) | `coach_body_goals_weight` | `Coach.handleCallback()` | Бажані параметри учня |
@@ -353,7 +359,7 @@ State.set(coachId, {
 
 | № | FSM State | Очікує | Валідація | Наступний State | Обробник |
 |---|-----------|--------|-----------|-----------------|----------|
-| 23 | `coach_add_student_name` | Текст (Ім'я Прізвище) | Min 2 слова | `coach_add_student_age` | `Coach.handleTextMessage()` |
+| 23 | `coach_add_student_name` | Текст (**Прізвище Ім'я**) | Min 2 слова (1-е = прізвище) | `coach_add_student_age` | `Coach.handleTextMessage()` |
 | 23d | `coach_add_student_age` | Дата ДД.ММ.РРРР | 10–100 років | `coach_add_student_gender` | `Coach.handleTextMessage()` |
 | 23e | `coach_add_student_weight` | Число (кг) | WEIGHT_MIN–WEIGHT_MAX | `coach_add_student_height` | `Coach.handleTextMessage()` |
 | 23f | `coach_add_student_height` | Число (см) | HEIGHT_MIN–HEIGHT_MAX | `coach_add_student_waist` | `Coach.handleTextMessage()` |
@@ -663,7 +669,7 @@ State.set(coachId, {
 
 ### Історичний еталон: Google Apps Script (`Router.gs`)
 
-Нижче — спрощений **старий** псевдокод для GAS (без змінних гілок Node). **Не використовувати** як опис продакшен FIT 3.0 на Railway.
+Нижче — спрощений **старий** псевдокод для GAS (без змінних гілок Node). **Не використовувати** як опис продакшен MAYAG FIT на Railway.
 
 ```javascript
 // LEGACY GAS — не відповідає lib/router.js
