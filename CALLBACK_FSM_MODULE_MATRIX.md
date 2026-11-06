@@ -345,7 +345,8 @@ State.set(coachId, {
 | 42a | `COACH_STU_PROG:{chatId}` | `null` | Хаб «Програма тренувань» | **`Coach.showStudentProgramMenu`** | План, дні, бажані, активність, досвід, обміри, медицина, архів |
 | 42b | `COACH_STU_FMT:{chatId}` | `null` | Хаб «Формат/тариф» | **`Coach.showStudentFormatMenu`** | Формат+клуб, тип тренування, свій тариф |
 | 42c | `COACH_STU_RPT:{chatId}` | `null` | Хаб «Звіт/Аналітика» | **`Coach.showStudentReportMenu`** | Журнал тренувань, AI-аналітика |
-| 42d | `COACH_STUDENT_HEALTH_MENU:{id}` / `COACH_STUDENT_BODY_MENU:{id}` | `null` | → `COACH_STU_PROG` | Alias на Програму (legacy) | Старі кнопки/підказки |
+| 42d | `COACH_STUDENT_BODY_MENU:{id}` | `null` | Хаб «Параметри тіла» | **`Coach.showStudentBodyMenu`** | Бажані параметри, обміри, архів |
+| 42e | `COACH_STUDENT_HEALTH_MENU:{id}` | `null` | → `COACH_STU_PROG` | Alias на Програму (legacy) | Старі кнопки/підказки |
 | 43 | `COACH_TRAIN:{chatId}` | `null` | `training_group` | `Training.handleCallback()` | Тренувати учня (Coach Mode) |
 | 44 | `COACH_HISTORY:{chatId}` | `null` | меню історії (`hist_menu`) | **`Coach` → `History.showHistoryMenu`** | Журнал тренувань клієнта (з хабу Звіт) |
 | 45 | `COACH_BOOK:{chatId}` | `null` | старт запису | **`router.js` → `Schedule.startBookStudent`** (рання гілка; див. порядок router) | Записати учня |
