@@ -1,4 +1,7 @@
-# Деплой FIT 3.0 на Railway
+# Деплой MAYAG FIT на Railway
+
+**Гілка продакшену:** `main`. Railway має бути підключений саме до `main`.  
+Пуш у `deploy/web-cabinet-onboarding` (або іншу feature-гілку) **не** деплоїть бот, доки коміти не потраплять у `main`.
 
 ## Що потрібно
 
@@ -54,7 +57,7 @@
 
 ## Перевірка
 
-- Відкрийте в браузері `https://<your-app>.up.railway.app` — має зʼявитись текст: `FIT 3.0 bot. Webhook: POST /webhook`.
+- Відкрийте в браузері `https://<your-app>.up.railway.app` — має зʼявитись текст: `MAYAG FIT bot. Webhook: POST /webhook`.
 - У логах Railway при старті мають бути рядки: `Env: BOT_TOKEN=ok SUPABASE_URL=ok ...`.
 
 ## Структура для деплою
