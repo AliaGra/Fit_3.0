@@ -343,8 +343,8 @@ State.set(coachId, {
 | 41 | `COACH_ADD_STUDENT` | `null` (Coach Menu) | `coach_add_student_name` | **`Coach.handleCallback()`** | Додати учня |
 | 42 | `VIEW_STUDENT:{chatId}` | `null` | Показ картки | **`Coach.handleCallback()`** | Картка клієнта (хаби: Програма / Формат·тариф / Звіт) |
 | 42a | `COACH_STU_PROG:{chatId}` | `null` | Хаб «Програма тренувань» | **`Coach.showStudentProgramMenu`** | План, дні, бажані, активність, досвід, обміри, медицина, архів |
-| 42b | `COACH_STU_FMT:{chatId}` | `null` | Хаб «Формат / тариф» | **`Coach.showStudentFormatMenu`** | Формат+клуб, тип тренування, свій тариф |
-| 42c | `COACH_STU_RPT:{chatId}` | `null` | Хаб «Звіт / Аналітика» | **`Coach.showStudentReportMenu`** | Журнал тренувань, AI-аналітика |
+| 42b | `COACH_STU_FMT:{chatId}` | `null` | Хаб «Формат/тариф» | **`Coach.showStudentFormatMenu`** | Формат+клуб, тип тренування, свій тариф |
+| 42c | `COACH_STU_RPT:{chatId}` | `null` | Хаб «Звіт/Аналітика» | **`Coach.showStudentReportMenu`** | Журнал тренувань, AI-аналітика |
 | 42d | `COACH_STUDENT_HEALTH_MENU:{id}` / `COACH_STUDENT_BODY_MENU:{id}` | `null` | → `COACH_STU_PROG` | Alias на Програму (legacy) | Старі кнопки/підказки |
 | 43 | `COACH_TRAIN:{chatId}` | `null` | `training_group` | `Training.handleCallback()` | Тренувати учня (Coach Mode) |
 | 44 | `COACH_HISTORY:{chatId}` | `null` | меню історії (`hist_menu`) | **`Coach` → `History.showHistoryMenu`** | Журнал тренувань клієнта (з хабу Звіт) |
