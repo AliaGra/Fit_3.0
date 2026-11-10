@@ -1,98 +1,198 @@
 # Передача контексту для нового чату — MAYAG FIT
 
-**Дата оновлення handoff:** 06.11.2026  
-**Проєкт:** Telegram-бот MAYAG FIT (Node.js, Railway, Supabase)  
-**Репо:** https://github.com/AliaGra/Fit_3.0  
-**Гілка деплою:** `main` (перед новим чатом — `git pull origin main`)  
-**Важливо:** пуш лише в `deploy/*` **не** оновлює прод. Railway слухає **`main`**.
+**Дата handoff:** 10.11.2026  
+**Проєкт:** Telegram-бот MAYAG FIT (колишня назва FIT 3.0 у шляхах/репо)  
+**Робоча папка:** `d:\Fit 3.0 vs2.0`  
+**GitHub:** https://github.com/AliaGra/Fit_3.0  
+**Промпт для копіювання:** `PROMPT_NEW_CHAT.md`  
 
 ---
 
-## Що вставити в перший меседж нового чату
+## Швидкий старт агенту
 
-```
-Проєкт: MAYAG FIT (Node, Supabase, Railway). Handoff: @HANDOFF_NEW_CHAT.md
+1. Прочитати `.cursorrules` — канон стеку і VETO.
+2. `git status` + `git log origin/main -5` — реальний стан **перед** правками.
+3. Продукт: `Бізнес-логіка_Gym_3_0_v1.1.md` (таблиця статусу реалізації).
+4. **Хронологія впроваджених змін:** `Зміни_логіки_та_функціоналу.md` — головний документ «що змінилось у логіці/функціоналі» (дата, коміти, файли).
+5. Callback/FSM: `CALLBACK_FSM_MODULE_MATRIX.md`.
+6. Чернетка під час роботи: `WORKLOG.md` («Поточна робота» / «Shipped»).
+7. Деплой: `DEPLOY.md`.
 
-Останні коміти (main, 05–06.11.2026):
-• 2faa40f — картка клієнта: хаби Програма / Формат·тариф / Звіт·Аналітика
-• 5f71a5a — інвайт: без публічної картки / відгуку до активації
-• df1eafe — публічна картка клієнта: імʼя+ініціал, стать, вік, формат, клуб
-• 8a4198e — реєстрація без району; інвайт клієнта «Прізвище Імʼя»
-• a51c717 — тренер ↔ власник: заявка адміну + перемикач меню (role=coach)
-• 36721dc — фото/лого на публічних картках (тренер/клієнт/заклад)
-• 70b4594…bf2d53f — коротка оферта + mayag.fit/oferta.html, welcome UX
+**Користувач:** комітить/пушить сам; агент — **не commit/push** без явної просьби.
 
-Міграції на Supabase (перевірити!):
-• supabase_migration_card_images.sql
-• supabase_migration_coach_venue_owner_link.sql
-• (раніше) supabase_migration_user_reviews.sql, venue_managers, тощо
+### Потік документації (важливо)
 
-Доки: README, Бізнес-логіка v1.11, Зміни_логіки, CHANGELOG, WORKLOG.
-Заклади: @HANDOFF_VENUES_AND_SEARCH.md
+| Етап | Куди писати |
+|------|-------------|
+| В процесі | `WORKLOG.md` — все, у т.ч. незавершене (`draft`) |
+| Після коміту / на `main` | **`Зміни_логіки_та_функціоналу.md`** — стислий блок з датою, змістом, SHA, файлами, міграціями |
+| Користувацький реліз | `CHANGELOG.md` — коротко (Unreleased / версія) |
+| Складні зміни меню/навігатора | Дубль або посилання в `Зміни_Навігатор_MAYAG_FIT.md` |
+| Статус модулів | Таблиця в `Бізнес-логіка_Gym_3_0_v1.1.md` |
 
-Задача: [опиши що потрібно]
-Не коммитити / не пушити без моєї просьби. Після коду — push саме в main для Railway.
-```
+Після пушів користувача — за запитом: WORKLOG + **`Зміни_логіки_та_функціоналу.md`** (не лише WORKLOG).
 
 ---
 
-## Де суть проєкту (канон)
+## Гілки і прод
 
-| Пріоритет | Документ | Навіщо |
-|-----------|----------|--------|
-| 1 | **README.md** | Стек, структура `lib/`, cron |
-| 2 | **Бізнес-логіка_Gym_3_0_v1.1.md** (v1.11) | Продукт: ролі, інвайти, розклад, venues, dual coach-owner |
-| 3 | **CALLBACK_FSM_MODULE_MATRIX.md** | Callback → FSM → модуль |
-| 4 | **Схемы_технических_данных_v2.md** | Таблиці Supabase |
-| 5 | **Зміни_логіки_та_функціоналу.md** | Хронологія змін |
-| 6 | **WORKLOG.md** | Робоча памʼять |
-| 7 | **CHANGELOG.md** | Коротко для користувача |
+| Гілка | Роль |
+|--------|------|
+| **`main`** | Railway, прод (~1–3 хв після push) |
+| `deploy/web-cabinet-onboarding` | Історично web onboarding; **на 10.11.2026 tip збігається з `origin/main`** (`ecbe310`) |
 
-**Операційно:** `DEPLOY.md` (Railway, env, webhook).  
-**Заклади:** `VENUES_DIRECTORY_IMPLEMENTATION_PLAN.md`, `HANDOFF_VENUES_AND_SEARCH.md`.
+Пуш лише у feature-гілку **не** оновлює бот, доки зміни не в `main`.
+
+Перед роботою: `git pull origin main`.
+
+---
+
+## Останні коміти на `main` (орієнтир)
+
+| SHA | Зміст |
+|-----|--------|
+| `ecbe310` | Картка клієнта → хаб **Програма**: підхаб параметрів тіла, розклад кнопок |
+| `db2fed7` | Кнопка хабу формату: **Формат/тариф** |
+| `ac296f8` | Хаби: **Звіт/Аналітика** першим |
+| `2faa40f` | Хаби картки: Програма / Формат / Звіт (`COACH_STU_PROG`, `COACH_STU_FMT`, `COACH_STU_RPT`) |
+| `5f71a5a` | Інвайт: без публічної картки/відгуку до активації |
+| `df1eafe` | Публічна картка клієнта: приватність імені, стать, вік, формат, клуб |
+| `a51c717` | Тренер ↔ власник закладу: заявка адміну |
+| `36721dc` | Фото/лого публічних карток → `lib/cardImages.js` |
+| `dcc4832` | **Web cabinet:** сайт → Telegram → реєстрація (`/start web_*`) |
+| `898c0ed` / `f34f8bd` | Підказки тренера: текст після робочого часу; **Назад** + **Підказки** на екранах інтервалу (`lib/schedule.js`) |
+| `dd56b62` | Термін «клієнт» у меню тренера (не в меню solo-учня) |
+
+Детальніше листопад 2026 — у **`Зміни_логіки_та_функціоналу.md`** (розділи 2026-11-05…06) і коротко в `WORKLOG.md` → **Shipped (main)**.
+
+---
+
+## Канонічні документи (пріоритет)
+
+| # | Файл | Навіщо |
+|---|------|--------|
+| 1 | `README.md` | Стек, структура, cron |
+| 2 | `Бізнес-логіка_Gym_3_0_v1.1.md` | Правила продукту, VETO, статус модулів |
+| 3 | **`Зміни_логіки_та_функціоналу.md`** | **Хронологія змін логіки та UI після комітів** |
+| 4 | `CALLBACK_FSM_MODULE_MATRIX.md` | Callback → FSM → модуль |
+| 5 | `WORKLOG.md` | Робоча памʼять до SYNC |
+| 6 | `CHANGELOG.md` | Зовнішній changelog |
+| 7 | `Зміни_Навігатор_MAYAG_FIT.md` | Навігатор / tip-first хаби (дубль у п.3) |
+
+---
+
+## Web cabinet (onboarding з сайту)
+
+**Статус:** код на `main`; у WORKLOG запис **draft** (2026-08-28) — потрібна перевірка E2E і міграції.
+
+| Що | Де |
+|----|-----|
+| Сайт | `mayag.fit/cabinet.html`, посилання в `lib/constants.js` (`COACH_CABINET`) |
+| Deep link | `/start web_<token>` → `lib/router.js` |
+| Логіка | `lib/registration.js` — `startWebOnboarding`, `handleWebContactMessage`, далі анкета тренера |
+| БД | `supabase_migration_web_cabinet_onboarding.sql` → таблиця `web_cabinet_onboarding` |
+| API БД | `lib/supabase.js` — get/confirm/complete web cabinet |
+
+**Env:** `SUPABASE_SERVICE_ROLE_KEY` (сайт/сервер; див. `DEPLOY.md`).
+
+**Тест (мінімум):** невалідний/прострочений токен; невірний номер контакту; новий тренер до кінця анкети; існуючий `chat_id`.
+
+---
+
+## Міграції Supabase — перевірити на проєкті
+
+Обовʼязково для недавніх фіч (якщо ще не виконували):
+
+1. `supabase_migration_card_images.sql`
+2. `supabase_migration_coach_venue_owner_link.sql`
+3. `supabase_migration_web_cabinet_onboarding.sql`
+4. `supabase_migration_users_telegram_username.sql` — кнопки «Написати в Telegram» (coach ↔ client)
+
+Інші міграції — за модулем (venues, AI, menstrual cycle тощо); еталон схеми: `Supabase_створення_таблиць_MAYAG_FIT.sql` (або актуальний SQL у корені).
+
+Без колонок/таблиць фіча падає або мовчки не зберігає дані.
 
 ---
 
 ## Три боти (webhook)
 
-| Бот | Webhook | Env | Модуль |
-|-----|---------|-----|--------|
-| Основний MAYAG FIT | `POST /webhook` | `BOT_TOKEN` | `lib/router.js` |
-| Адмін | `POST /admin_webhook` | `ADMIN_BOT_TOKEN`, `ADMIN_CHAT_ID` | `lib/adminBot.js`, `lib/adminVenues.js` |
-| Help / support | `POST /help_webhook` | `HELP_BOT_TOKEN` | `lib/helpBot.js` |
+| Бот | Endpoint | Env |
+|-----|----------|-----|
+| Основний | `POST /webhook` | `BOT_TOKEN` |
+| Адмін | `POST /admin_webhook` | `ADMIN_BOT_TOKEN`, `ADMIN_CHAT_ID` |
+| Help | `POST /help_webhook` | `HELP_BOT_TOKEN` |
 
-Деплой: `git push origin main` → Railway (~1–3 хв).
-
----
-
-## Останнє на main (05–06.11.2026)
-
-### 1) Аватари / фото (`36721dc`)
-- Тренер: фото **або** лого; клієнт: фото; заклад: лого.
-- `lib/cardImages.js`; міграція `supabase_migration_card_images.sql`.
-
-### 2) Тренер + власник (`a51c717`)
-- Заявка з меню тренера → адмін **🏢 Заявки власника (тренер)**.
-- `role` лишається `coach`; доступ через `venue_managers` + `active_menu_mode`.
-- `lib/coachOwnerLink.js`; міграція `supabase_migration_coach_venue_owner_link.sql`.
-
-### 3) Картка клієнта — хаби меню (`2faa40f`)
-- **Програма тренувань** (`COACH_STU_PROG`), **Формат/тариф** (`COACH_STU_FMT`), **Звіт/Аналітика** (`COACH_STU_RPT`).
-- План тільки в Програмі; «Обміри/Медицина/Досвід» з центру прибрано.
-
-### 4) Публічна картка клієнта / інвайт (`df1eafe`, `5f71a5a`, `8a4198e`)
-- Розширений зміст + приховування для неактивованого інвайту.
-- Реєстрація без району; додавання клієнта — **Прізвище Імʼя**.
-
-### 5) Оферта / welcome (`bf2d53f`…`70b4594`)
-- Коротка оферта + сайт; welcome без зайвого intro/ракети.
+Cron: `/cron/reminders`, `/cron/plan-revision` — `REMINDER_CRON_SECRET`.
 
 ---
 
-## Міграції, які мають бути в Supabase
+## Структура runtime (не GAS)
 
-Обовʼязково для фіч листопада:
-1. `supabase_migration_card_images.sql`
-2. `supabase_migration_coach_venue_owner_link.sql`
+```
+index.js          # HTTP + webhooks + cron
+lib/router.js     # маршрутизація
+lib/constants.js  # єдине джерело callback/FSM (VETO: без магічних рядків)
+lib/supabase.js   # БД
+lib/schedule.js   # розклад, робочий час, слоти
+lib/coach*.js     # клієнти, підказки, публічні дані
+lib/venues.js     # довідник закладів
+lib/registration.js
+```
 
-Якщо колонок/таблиць немає — фічі в боті падають або мовчки не зберігають дані.
+`*.gs` — лише бібліотека вправ (Google Sheet → експорт у Supabase). Прод-логіка — **тільки Node**.
+
+---
+
+## Супутні handoff-документи
+
+| Файл | Коли читати |
+|------|-------------|
+| `PROMPT_NEW_CHAT.md` | Готовий текст у новий чат |
+| `HANDOFF_VENUES_AND_SEARCH.md` | Заклади, пошук, адмін `ADM_V*` |
+| `VENUES_DIRECTORY_IMPLEMENTATION_PLAN.md` | План фаз venues |
+| `Логіка складання плану тренувань.md` | Плани, медфільтр, прогресія |
+| `Підключення_AI_покроково.md` | OpenAI, `AI_ENABLED` |
+
+---
+
+## Локальний робочий стан (10.11.2026)
+
+**Перевіряй `git status` — може відрізнятися від remote.**
+
+Типові незакомічені речі на диску користувача:
+
+- Масове **перейменування документації** `FIT3` → `MAYAG_FIT` (видалені старі `.md`, нові untracked) — **не змішувати** з кодовими комітами без плану.
+- Дрібні зміни **бренду в коментарях** у `lib/ai/*`, `index.js`, `.cursorrules` (±18 рядків) — можливо окремий docs-only commit.
+- Папка `NIPO_AP_deposit/`, docx/xlsx — зазвичай **не** в репо бота.
+
+Гілка checkout: часто `deploy/web-cabinet-onboarding` або `main` — орієнтуйся на `origin/main` для прод-версії коду.
+
+---
+
+## Правила розробки (коротко)
+
+- UI українською; `callback_data` з `:`; UserID = ChatID.
+- Не `parse_mode: Markdown` для динамічних імен/дат з `_` — див. `.cursorrules`.
+- Після `sendKeyboard` учню — перевіряти помилку API, при фейлі повідомити тренера.
+- Плани/медицина — `lib/medicalFilter.js`, `filterExerciseForUser`.
+
+---
+
+## Шаблон задачі для користувача
+
+У новому чаті в блоці «Моя задача» вкажи:
+
+1. **Роль:** тренер / клієнт / власник / адмін.
+2. **Шлях меню** (емодзі кнопок).
+3. **Очікувана vs фактична** поведінка.
+4. Чи потрібен **deploy** (`push main`) після зміни.
+5. Чи є **міграція SQL**.
+
+---
+
+## Історія цього handoff
+
+| Дата | Зміна |
+|------|--------|
+| 06.11.2026 | Перша версія (картки, dual-role, інвайт) |
+| 10.11.2026 | Синхронізація з `main`@ecbe310, web cabinet, PROMPT_NEW_CHAT, локальні незакомічені нотатки |
