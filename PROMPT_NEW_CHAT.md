@@ -55,18 +55,15 @@ Git:
 
 ---
 
-## B) Реєстрація тренера з сайту (web cabinet)
+## B) Реєстрація тренера з сайту (web cabinet) — legacy
 
 ```
 Проєкт: MAYAG FIT. HANDOFF_NEW_CHAT.md → «Web cabinet».
 
-Ланцюжок: mayag.fit/cabinet.html → токен 15 хв → Telegram /start web_<token> → contact → анкета тренера → витринка на сайті.
+11.11.2026: сайт-кабінет і кнопка в меню бота зняті. Не відновлювати посилання на cabinet.html у UI/Навігаторі.
 
-Код: lib/registration.js (startWebOnboarding, handleWebContactMessage), lib/router.js, lib/supabase.js; FSM REG_WEB_CONTACT.
-БД: supabase_migration_web_cabinet_onboarding.sql (web_cabinet_onboarding).
-Env: SUPABASE_SERVICE_ROLE_KEY.
-
-Доки: після змін — WORKLOG + Зміни_логіки_та_функціоналу.md. Код на main з dcc4832; E2E і міграцію перевірити.
+Ланцюжок (legacy): раніше mayag.fit/cabinet.html → токен → Telegram /start web_<token> → анкета тренера.
+Код legacy: lib/registration.js, lib/router.js, lib/supabase.js; таблиця web_cabinet_onboarding.
 
 Задача: [опиши]
 Commit/push — лише за моєю просьбою або «роби сам».

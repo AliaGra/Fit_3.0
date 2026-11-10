@@ -81,21 +81,16 @@
 
 ---
 
-## Web cabinet (onboarding з сайту)
+## Web cabinet (onboarding з сайту) — застарілий вхід
 
-**Статус:** код на `main`; у WORKLOG запис **draft** (2026-08-28) — потрібна перевірка E2E і міграції.
+**Статус (11.11.2026):** сторінку кабінету тренера на сайті **знято**; кнопку **🌐 Кабінет тренера на сайті** прибрано з **Мій профіль** бота (`URLS.COACH_CABINET` видалено). Код deep-link `/start web_*` і таблиця `web_cabinet_onboarding` можуть ще лишатися в репо як legacy — **не пропонувати** тренеру кабінет на сайті в меню/Навігаторі.
 
 | Що | Де |
 |----|-----|
-| Сайт | `mayag.fit/cabinet.html`, посилання в `lib/constants.js` (`COACH_CABINET`) |
-| Deep link | `/start web_<token>` → `lib/router.js` |
-| Логіка | `lib/registration.js` — `startWebOnboarding`, `handleWebContactMessage`, далі анкета тренера |
-| БД | `supabase_migration_web_cabinet_onboarding.sql` → таблиця `web_cabinet_onboarding` |
-| API БД | `lib/supabase.js` — get/confirm/complete web cabinet |
-
-**Env:** `SUPABASE_SERVICE_ROLE_KEY` (сайт/сервер; див. `DEPLOY.md`).
-
-**Тест (мінімум):** невалідний/прострочений токен; невірний номер контакту; новий тренер до кінця анкети; існуючий `chat_id`.
+| Сайт | `cabinet.html` більше не в продукті |
+| Deep link (legacy) | `/start web_<token>` → `lib/router.js` |
+| Логіка (legacy) | `lib/registration.js` — `startWebOnboarding`, … |
+| БД (legacy) | `supabase_migration_web_cabinet_onboarding.sql` → `web_cabinet_onboarding` |
 
 ---
 
