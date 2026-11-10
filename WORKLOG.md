@@ -38,6 +38,13 @@
 
 ## Shipped (main)
 
+### 2026-11-10 — Відгуки: хаб у профілі + notify target  _(status: shipped)_
+
+- **Scope**: тренер / клієнт / адмін
+- **Що:** хаб у профілі; списки про мене / мої; створення з хабу; кнопки на картці при інвайті з поясненням; середнє; сповіщення target після publish
+- **Файли:** `lib/reviews.js`, `lib/supabase.js`, `lib/menu.js`, `lib/profile.js`, `lib/coach.js`, `lib/adminBot.js`, `lib/constants.js`, `lib/router.js`
+- **Commit:** після push
+
 ### 2026-11-10 — Схвалення власника: кнопка Головне меню  _(status: shipped)_
 
 - **Scope**: тренер / адмін
