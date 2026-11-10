@@ -38,6 +38,13 @@
 
 ## Shipped (main)
 
+### 2026-11-10 — Картка клієнта: без `**` у тексті  _(status: shipped)_
+
+- **Scope**: тренер / UX картки клієнта
+- **Що:** прибрано літеральні markdown-зірочки з `showStudentProfile`
+- **Файли:** `lib/coach.js`
+- **Commit:** `3447ef8` (на `main`)
+
 ### 2026-11-10 — Handoff для нового чату  _(status: shipped)_
 
 - **Що:** `PROMPT_NEW_CHAT.md`; оновлено `HANDOFF_NEW_CHAT.md` (потік документації → **`Зміни_логіки_та_функціоналу.md`**)
