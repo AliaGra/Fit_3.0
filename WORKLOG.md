@@ -43,7 +43,7 @@
 - **Scope**: адмін / тренер→власник
 - **Що:** у сповіщенні та черзі заявок — @username / URL + кнопка «Написати тренеру в Telegram»
 - **Файли:** `lib/coachOwnerLink.js`, `lib/adminBot.js`
-- **Commit:** pending → після push
+- **Commit:** `0cd8072` (на `main`)
 
 ### 2026-11-10 — Картка клієнта: без `**` у тексті  _(status: shipped)_
 
