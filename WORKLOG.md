@@ -43,7 +43,7 @@
 - **Scope**: тренер / адмін
 - **Що:** після approve/reject заявки власника — `sendKeyboard` з `BACK_TO_MAIN`
 - **Файли:** `lib/adminBot.js`
-- **Commit:** після push
+- **Commit:** `e5cc4cc` (на `main`)
 
 ### 2026-11-10 — Адмін: Telegram-лінк у заявці власника  _(status: shipped)_
 
