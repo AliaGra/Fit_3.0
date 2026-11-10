@@ -48,7 +48,7 @@
   - Перейменовано «Фото / логотип картки» → **Фото профілю**.
   - Навігатор: шляхи «Де треную» / Звіти → Клуби, студії / Мій профіль → Звіти; CTA групових → `VENUES_MENU`.
 - **Файли**: `lib/profile.js`, `lib/cardImages.js`, `lib/constants.js`, `lib/coachHints.js`, `lib/coachHintSections.js`, `lib/coachPublicSteps.js`, `lib/coachOwnerLink.js`
-- **Commit**: після push
+- **Commit**: `50f3e72` (на `main`)
 
 ### 2026-11-10 — Головне меню: Мій профіль вище за Меню власника  _(status: shipped)_
 
