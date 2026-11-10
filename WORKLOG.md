@@ -38,6 +38,13 @@
 
 ## Shipped (main)
 
+### 2026-11-10 — Схвалення власника: кнопка Головне меню  _(status: shipped)_
+
+- **Scope**: тренер / адмін
+- **Що:** після approve/reject заявки власника — `sendKeyboard` з `BACK_TO_MAIN`
+- **Файли:** `lib/adminBot.js`
+- **Commit:** після push
+
 ### 2026-11-10 — Адмін: Telegram-лінк у заявці власника  _(status: shipped)_
 
 - **Scope**: адмін / тренер→власник
