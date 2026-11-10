@@ -43,7 +43,7 @@
 - **Scope**: тренер / клієнт / адмін
 - **Що:** хаб у профілі; списки про мене / мої; створення з хабу; кнопки на картці при інвайті з поясненням; середнє; сповіщення target після publish
 - **Файли:** `lib/reviews.js`, `lib/supabase.js`, `lib/menu.js`, `lib/profile.js`, `lib/coach.js`, `lib/adminBot.js`, `lib/constants.js`, `lib/router.js`
-- **Commit:** після push
+- **Commit:** `36dc46b` (на `main`)
 
 ### 2026-11-10 — Схвалення власника: кнопка Головне меню  _(status: shipped)_
 
