@@ -38,6 +38,13 @@
 
 ## Shipped (main)
 
+### 2026-11-10 — Адмін: Telegram-лінк у заявці власника  _(status: shipped)_
+
+- **Scope**: адмін / тренер→власник
+- **Що:** у сповіщенні та черзі заявок — @username / URL + кнопка «Написати тренеру в Telegram»
+- **Файли:** `lib/coachOwnerLink.js`, `lib/adminBot.js`
+- **Commit:** pending → після push
+
 ### 2026-11-10 — Картка клієнта: без `**` у тексті  _(status: shipped)_
 
 - **Scope**: тренер / UX картки клієнта
