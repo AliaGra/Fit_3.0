@@ -38,6 +38,14 @@
 
 ## Shipped (main)
 
+### 2026-11-11 — Активність: бал 1–5 у вкладці  _(status: shipped)_
+
+- **Scope**: тренер / учень / соло / Навігатор
+- **Що:** публічна шкала 1–5 (пороги score без змін); кнопка `Активність: N/5`; хаб вкладки з балом і розшифровкою; Навігатор/підказки оновлено.
+- **Файли:** `lib/activityProfile.js`, `lib/profile.js`, `lib/coach.js`, `lib/constants.js`, `lib/coachHintSections.js`, `lib/studentHints.js`, `lib/coachFirstSteps.js`
+- **Commit:** після push
+
+
 ### 2026-11-11 — Admin delete: повний cascade даних користувача  _(status: shipped)_
 
 - **Scope**: адмін / helpbot / БД
