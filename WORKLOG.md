@@ -43,7 +43,7 @@
 - **Scope**: адмін / helpbot / БД
 - **Що:** `adminDeleteStudentCascade` / `adminDeleteCoachCascade` / інвайт-delete чистять усі персональні таблиці (цикл, абонементи, відгуки, aliases, support, web_cabinet, broadcast_log, coach_documents/group/*, venue_managers тощо). Слоти учня — звільняються (ресурс тренера). `admin_log` лишається (аудит).
 - **Файли:** `lib/supabase.js`, `lib/helpBot.js`
-- **Commit:** після push
+- **Commit:** `f0c19db`
 
 ### 2026-11-11 — Мої показники тіла + поточні заміри на кнопках  _(status: shipped)_
 
