@@ -43,7 +43,7 @@
 - **Scope**: антропометрія / профіль / реєстрація / AI-аналіз
 - **Що:** без запʼястя `classifyBodyType` повертає `insufficient_data`; обовʼязкові shoulders+waist+glutes+height+wrist; оновлено підказки й доки.
 - **Файли:** `lib/bodyType.js`, `lib/ai/bodyAnalysis.js`, `lib/profile.js`, `lib/registration.js`, доки
-- **Commit:** pending (заповнити sha після push)
+- **Commit:** `4ac8338`
 
 ### 2026-11-12 — Мої показники тіла: лише заголовок  _(status: shipped)_
 
