@@ -38,6 +38,13 @@
 
 ## Shipped (main)
 
+### 2026-11-12 — Розсилка потенційним v1.1 + Навігатор  _(status: shipping)_
+
+- **Scope**: broadcast / Навігатор / docs / міграція
+- **Що:** потенційні — клуби без тренера / місто / інші міста; `broadcast_log.oblast`; розділ Навігатора **📣 Розсилка / новини**; умови тренера.
+- **Файли:** `lib/broadcast.js`, `lib/supabase.js`, `lib/coachHints.js`, `lib/coachHintSections.js`, `lib/termsOfUse.js`, `lib/constants.js`, `lib/router.js`, SQL, docs
+- **Commit:** (pending)
+
 ### 2026-11-12 — Тренер: хаб Розсилка / новини  _(status: shipped)_
 
 - **Scope**: профіль тренера / Навігатор (аудит)

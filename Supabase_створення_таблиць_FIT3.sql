@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS users (
   telegram_username text,
   calendar_id  text,
   experience_start_date timestamptz,
+  ads_opt_in   boolean NOT NULL DEFAULT true,  -- новини/потенційні розсилки в місті
   PRIMARY KEY (chat_id)
 );
 
@@ -179,6 +180,30 @@ CREATE TABLE IF NOT EXISTS logs (
   stack     text
 );
 
+-- 10b. Журнал розсилок (тренер / заклад)
+-- Міграції: supabase_migration_broadcast_ads.sql, supabase_migration_broadcast_potential_v11.sql
+-- audience_type: own_all|own_active|own_sleeping|potential|pot_club|pot_city|pot_other
+CREATE TABLE IF NOT EXISTS broadcast_log (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_chat_id  text NOT NULL,
+  sender_role     text NOT NULL,
+  venue_id        text,            -- власник: заклад; pot_club: цільовий клуб
+  audience_type   text NOT NULL,
+  city            text,
+  oblast          text,            -- для pot_other
+  body            text NOT NULL,
+  sent_count      integer NOT NULL DEFAULT 0,
+  skipped_count   integer NOT NULL DEFAULT 0,
+  failed_count    integer NOT NULL DEFAULT 0,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS broadcast_log_sender_created_idx
+  ON broadcast_log (sender_chat_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS broadcast_log_venue_created_idx
+  ON broadcast_log (venue_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS broadcast_log_audience_created_idx
+  ON broadcast_log (audience_type, created_at DESC);
+
 -- Дозволи для анонімного API (якщо будете вставляти через API з anon-ключем)
 ALTER TABLE city_list ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -190,6 +215,7 @@ ALTER TABLE workout_schedule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE measurements_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bot_training_data ENABLE ROW LEVEL SECURITY;
 ALTER TABLE logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE broadcast_log ENABLE ROW LEVEL SECURITY;
 
 -- Політики: дозволити все для anon (для імпорту; потім можна обмежити)
 CREATE POLICY "Allow all for anon" ON city_list FOR ALL USING (true) WITH CHECK (true);
@@ -202,6 +228,7 @@ CREATE POLICY "Allow all for anon" ON workout_schedule FOR ALL USING (true) WITH
 CREATE POLICY "Allow all for anon" ON measurements_history FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all for anon" ON bot_training_data FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all for anon" ON logs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all for anon" ON broadcast_log FOR ALL USING (true) WITH CHECK (true);
 
 -- 11. FSM State для бота (Node.js хостинг; замість PropertiesService у GAS)
 CREATE TABLE IF NOT EXISTS bot_state (
