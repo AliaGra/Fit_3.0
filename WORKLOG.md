@@ -38,6 +38,13 @@
 
 ## Shipped (main)
 
+### 2026-11-12 — Ягодиці в UI + docs hip/glutes/goal_hips  _(status: shipped)_
+
+- **Scope**: профіль / БД-доки / бізнес-логіка
+- **Що:** кнопка Ягодиці в самозамірах; еталон measurements_history + user_body_goals; goal_hips = glutes.
+- **Файли:** `lib/profile.js`, SQL etalon, docs
+- **Commit:** pending
+
 ### 2026-11-12 — Тип фігури: wrist обовʼязковий  _(status: shipped)_
 
 - **Scope**: антропометрія / профіль / реєстрація / AI-аналіз

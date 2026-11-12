@@ -13,3 +13,4 @@ CREATE TABLE IF NOT EXISTS user_body_goals (
 );
 
 COMMENT ON TABLE user_body_goals IS 'Цільові (бажані) параметри тіла; set_by_coach = NULL якщо вказав сам користувач при реєстрації';
+COMMENT ON COLUMN user_body_goals.goal_hips IS 'Бажані ягодиці (см); відповідає users.glutes. НЕ стегно (users.hip). Окремих goal_neck / goal_wrist немає (шия — % жиру, запʼястя — кістяк).';

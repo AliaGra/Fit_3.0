@@ -10,7 +10,7 @@
 
 **Хостинг:** Бот розгорнуто на **Railway**. Після `git push` до **`main`** Railway автоматично перезбирає та перезапускає сервіс (гілка `deploy/*` сама по собі прод не оновлює). Зміни в боті з'являються після деплою (зазвичай 1–3 хв).
 
-**Оновлення:** 12.11.2026 — **тип фігури:** без обхвату **запʼястя** класифікація не виконується (`insufficient_data`; без підстановки normosthenic). Обовʼязкові: shoulders, waist, glutes, height, **wrist**.  
+**Оновлення:** 12.11.2026 — самозаміри: кнопка **Ягодиці** (`glutes`) додана поруч зі **Стегно** (`hip`); еталон `measurements_history` / `user_body_goals` синхронізовано з міграціями; **`goal_hips` = ягодиці (`glutes`), не стегно**. Тип фігури без **запʼястя** не рахується.  
 **Попереднє:** 11.11.2026 — тренер: **Мої показники тіла** (без окремого **Зріст** у хабі; поточні заміри на кнопках **Оновити заміри**); **Публічні дані**; **Мій профіль** без текстової картки й без кнопки **Кабінет тренера на сайті** (сайт-кабінет знято); одне фото/лого на картку; Навігатор синхронізовано з меню.  
 **Попереднє:** 06.11.2026 — **картка клієнта (тренер):** хаби **Програма тренувань** / **Формат/тариф** / **Звіт/Аналітика** (`2faa40f`); план лише в Програмі; «Обміри/Медицина/Досвід» прибрано з центру.
 **Попереднє:** 05–06.11.2026 — **фото/лого на публічних картках** (`36721dc`); **тренер + доступ власника** (`a51c717`); коротка оферта + `mayag.fit/oferta.html`; реєстрація без району; інвайт **Прізвище Імʼя**; публічна картка клієнта розширена; для `INVITE_*` публічна картка/відгук приховані.  
@@ -30,7 +30,7 @@
 | 6 | **Бібліотека вправ** | ✅ Реалізовано | Таблиця в Supabase: group_level1/2/3, name_ua, name_ru, vid, difficulty, medical_contraindications, medical_limitations, safe_for, modifications, alternatives, safety_notes. Ієрархія Верх/Низ/Кор/Кардіо → групи → підкатегорії. У **картці вправи** медичні поля показуються **розшифровано** (повні назви станів + ступінь тяжкості) через lib/medicalDecode.js; підтримка форматів MC001, MC001/mild, MC003 (moderate-severe), кириличні МС→латиниця. Експорт з Sheets → імпорт. |
 | 7 | **Профіль (перегляд/редагування, заміри)** | ✅ Реалізовано | Тренер: **Мій профіль** = меню розділів (без текстової картки / сайт-кабінету / звʼязку й умов — вони в **Навігатор → Зв’язок із розробником**); **Мої показники тіла** (заміри з поточними на кнопках, бажані, зони, активність; зріст у **Оновити заміри**); **Публічні дані**; **Відгуки**; **Звіти**; **Розсилка**. Учень: заміри/бажані + «Редагувати дані». |
 | 7d | **Документи тренера** | ✅ Реалізовано | Фото/файл; `telegram_file_id`; учень бачить у картці тренера; тренер: **Мій профіль → Публічні дані → Мої документи** |
-| 7a | **Бажані параметри тіла (user_body_goals)** | ✅ Реалізовано | Тренер: при invite (після зон уникнення) — 5 питань (вага, талія, ягодиці, плечі, груди) з Пропустити; у картці учня — кнопка «Бажані параметри». Реєстрація: перед фінішем — «Вказати бажані параметри?» (Пропустити/Заповнити). Таблиця user_body_goals (Supabase). lib/bodyGoals.js: валідація, аналіз (analyzeGoalsVsCurrentState), блокування/попередження, кеш goals_analysis. |
+| 7a | **Бажані параметри тіла (user_body_goals)** | ✅ Реалізовано | Поля: `goal_weight`, `goal_waist`, **`goal_hips` (= ягодиці / `users.glutes`, не `hip`)**, `goal_shoulders`, `goal_chest`, **`goal_arm` (біцепс)**. **Немає** `goal_neck` / `goal_wrist` (свідомо: шия → % жиру, запʼястя → кістяк). UI: реєстрація / invite / картка учня / профіль. lib/bodyGoals.js + `supabase_migration_user_body_goals*.sql`. |
 | 7b | **AI-аналітика тіла (збереження та перегляд)** | ✅ Реалізовано | Текст аналізу тіла зберігається в ai_generated_content (contentType='body_analysis') після реєстрації та при оновленні замірів. Кнопка «🤖 AI-аналітика»: у головному меню учня — показує збережений текст; у картці учня (тренер) — показує аналіз учня. При активації invite — entity_id оновлюється з inviteCode на realChatId. lib/ai/bodyAnalysis.js: generateAndSave, getStoredAnalysis, sendStoredAnalysis. |
 | 7c | **Аналіз цілей vs поточний стан** | ✅ Реалізовано | analyzeGoalsVsCurrentState() (lib/bodyGoals.js): Група 1 (без поточних замірів): ІМТ цілі, WH цілі, goal_waist≥goal_hips, teen-рестрикції. Група 2 (з поточними замірами): дельти, великі відхилення, тип фігури (лише якщо є **wrist** + shoulders/waist/glutes/height), естетичний вектор, apple/pear/v_shape тощо. Результат кешується в user_body_goals.goals_analysis (jsonb). При оновленні замірів — перерахунок + сповіщення тренеру при зміні статусу. lib/ai/goalsVsCurrent.js — AI-переказ для учня. |
 | 7e | **Тип фігури / тілобудова (bodyType)** | ✅ Реалізовано | `lib/bodyType.js` → `classifyBodyType`. **Обовʼязкові заміри:** shoulders, waist, glutes, height, **wrist**. Без запʼястя — `type=null`, `reason=insufficient_data` (не підставляти normosthenic). Запʼястя → bodyBuild (астенік/нормо/гіпер) і пороги класифікації. % жиру: manual або Navy (потрібна шия). Оновлення при `User.updateMeasurements`; AI-блок у `lib/ai/bodyAnalysis.js` явно пише, яких обмірів бракує. |
@@ -1565,109 +1565,76 @@ UI Учня:
 
 ## 5. РОБОТА З ЗАМІРАМИ
 
-### 5.1 Таблиця MeasurementsHistory
+### 5.1 Таблиця measurements_history (Supabase)
 
-**Структура (A-I):**
+**Еталон:** `Supabase_створення_таблиць_FIT3.sql` (+ міграції нижче). Запис через `lib/supabase.js` → `insertMeasurement` / `User.updateMeasurements`.
 
-| Колонка | EN Header | Опис |
-|---------|-----------|------|
-| **A** | ChatID | ChatID користувача |
-| **B** | Date | Дата заміру |
-| **C** | Height | Зріст (см) |
-| **D** | Weight | Вага (кг) |
-| **E** | Waist | Талія (см) |
-| **F** | Hip | Стегно (см) |
-| **G** | Glutes | Ягодиці (см) |
-| **H** | Arm | Рука (см) |
-| **I** | Source | Джерело: profile/training/manual |
+| Колонка (БД) | JS / UI | Опис |
+|--------------|---------|------|
+| chat_id | chatId | ChatID користувача |
+| date | date | Дата заміру |
+| height | height | Зріст (см) |
+| weight | weight | Вага (кг) |
+| waist | waist | Талія (см) |
+| **hip** | **hip / «Стегно»** | Обхват **стегна** (не ягодиці) |
+| **glutes** | **glutes / «Ягодиці»** | Обхват **ягодиць**; для типу фігури / Navy |
+| arm | arm | Біцепс розслаблено |
+| arm_flex | armFlex | Біцепс напруга |
+| neck | neck | Шия (для % жиру Navy) |
+| wrist | wrist | Запʼястя (тілобудова / тип фігури) |
+| shoulders | shoulders | Плечі |
+| chest | chest | Груди |
+| body_fat_pct | bodyFatPct | Ручний % жиру |
+| source | source | Джерело: profile / training / manual |
+
+**Міграції розширення:** `supabase_migration_measurements_neck_wrist.sql`, `supabase_migration_measurements_shoulders_chest_bodyfat.sql`, `supabase_migration_measurements_arm_flex.sql`.
+
+**UI самозамірів («Оновити заміри»):** є і **Стегно**, і **Ягодиці** (окремі кнопки). Тренер у картці клієнта — те саме.
 
 ---
 
 ### 5.2 Source (джерело даних)
 
-**profile:**
-- Заміри з розділу Профіль
-- Користувач вручну вводить дані
-
-**training:**
-- Автоматичні заміри після тренування
-- Можуть пропонуватися ботом
-
-**manual:**
-- Додані вручну через меню
-- Швидке додавання
+**profile:** заміри з розділу Профіль (вручну).  
+**training:** автоматичні / запропоновані після тренування.  
+**manual:** швидке додавання з меню.
 
 ---
 
-### 5.3 Функції роботи з замірами
+### 5.3 Функції роботи з замірами (Node)
 
-**Додати заміри:**
-```javascript
-Sheets.addMeasurement({
-  chatId: 123456789,
-  date: new Date(),
-  height: 175,
-  weight: 80,
-  waist: 85,
-  hip: 95,
-  glutes: 100,
-  arm: 35,
-  source: 'profile'
-});
-```
-
-**Отримати історію:**
-```javascript
-const history = Sheets.getMeasurementsHistory(chatId, 10);
-// Повертає останні 10 записів
-```
-
-**Обчислення динаміки:**
-```javascript
-function calculateProgress(history) {
-  if (history.length < 2) return null;
-  
-  const latest = history[0];
-  const previous = history[1];
-  
-  return {
-    weightDiff: latest.weight - previous.weight,
-    waistDiff: latest.waist - previous.waist,
-    // ... інші показники
-  };
-}
-```
+- `User.updateMeasurements(chatId, measurements)` — оновлює `users` + рядок у `measurements_history`, перераховує bodyType (якщо є всі обовʼязкові, в т.ч. wrist + glutes).
+- `supabase.insertMeasurement` / `getMeasurementHistory` — повний набір полів з таблиці вище.
 
 ---
 
 ### 5.4 Таблиця user_body_goals (бажані параметри тіла)
 
-**Призначення:** Зберігання цільових (бажаних) параметрів тіла учня: вага, талія, ягодиці, плечі, груди. Використовується для відображення прогресу до цілі та розрахунку орієнтовного терміну досягнення.
+**Призначення:** цільові параметри для прогресу та аналізу vs поточний стан.
 
 **Структура (Supabase):**
 
 | Колонка | Тип | Опис |
 |---------|-----|------|
-| chat_id | text PK | ChatID учня (REFERENCES users(chat_id) ON DELETE CASCADE) |
+| chat_id | text PK | ChatID учня |
 | goal_weight | decimal(5,2) | Бажана вага (кг) |
 | goal_waist | decimal(5,1) | Бажана талія (см) |
-| goal_hips | decimal(5,1) | Бажані ягодиці (см) |
+| **goal_hips** | decimal(5,1) | **Бажані ягодиці (см)** ↔ порівнюється з **`users.glutes`**. **Не** `users.hip` (стегно). Історична назва колонки `hips`, у UI — «Ягодиці». |
 | goal_shoulders | decimal(5,1) | Бажані плечі (см) |
 | goal_chest | decimal(5,1) | Бажані груди (см) |
-| set_by_coach | text | ChatID тренера (NULL якщо вказав сам користувач при реєстрації) |
-| updated_at | timestamptz | Час останнього оновлення |
+| **goal_arm** | decimal(5,1) | **Бажаний біцепс (см)** |
+| set_by_coach | text | ChatID тренера (NULL = сам користувач) |
+| goals_analysis | jsonb | Кеш аналізу |
+| analysis_date | timestamptz | Дата аналізу |
+| updated_at | timestamptz | Останнє оновлення |
 
-**Міграція:** `supabase_migration_user_body_goals.sql`
+**Свідомо відсутні:** `goal_neck`, `goal_wrist` — шия потрібна для % жиру, запʼястя для кістяка/типу фігури; як «бажані» обхвати не задаються.
 
-**Потоки введення:**
+**Міграції:** `supabase_migration_user_body_goals.sql`, `supabase_migration_user_body_goals_add_goal_arm.sql`.
 
-1. **Тренер при invite (додавання учня):** Після блоку «Є зони, які НЕ розвиваємо?» — 5 питань (вага → талія → ягодиці → плечі → груди), кожне з кнопкою «Пропустити». Без кнопки «Пропустити весь блок». FSM: `invite_body_goals_weight` … `invite_body_goals_chest`. Router: кроки `invite_*` маршрутизуються в Coach.handleTextMessage.
+**Потоки введення:** реєстрація / invite тренера / картка учня / профіль («Бажані параметри») — поля вага, талія, ягодиці, плечі, груди, біцепс (з Пропустити де передбачено).
 
-2. **Тренер у картці учня:** Кнопка «🎯 Бажані параметри» → 5 питань з Пропустити. Валідація: обов'язково зріст учня; якщо немає — «Спочатку вкажіть зріст учня». FSM: `coach_body_goals_weight` … `coach_body_goals_chest`.
-
-3. **Реєстрація (самореєстрація):** Перед `finishRegistration` — «Вказати бажані параметри тіла?» [Пропустити] [Заповнити]. Заповнити → 5 питань з Пропустити. Без валідації зросту; після збереження — нагадування «Для точнішої валідації заповніть зріст у профілі». FSM: `reg_body_goals_choice`, `reg_body_goals_weight` … `reg_body_goals_chest`.
-
-**Модуль:** `lib/bodyGoals.js` — `validateGoalField`, `calcDeltaAndTimeline`, `formatGoalsSummaryForCoach`, `formatGoalsSummaryForStudent`, `saveBodyGoals`, `showGoalsToStudent`. `lib/supabase.js` — `upsertBodyGoals`, `getBodyGoals`, `getLatestMeasurementsForGoals`.
+**Модуль:** `lib/bodyGoals.js`, `lib/profileBodyGoals.js`; `lib/supabase.js` — `upsertBodyGoals`, `getBodyGoals`.
 
 ================================================================================================
 
