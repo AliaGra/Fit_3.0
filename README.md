@@ -38,7 +38,7 @@ Telegram-бот на Node.js для керування тренуваннями:
 │   ├── reviews.js        # відгуки + публічна картка клієнта
 │   ├── registration.js, profile.js, medicalProfile.js, medicalFilter.js, medicalDecode.js
 │   ├── bodyGoals.js      # Бажані параметри: validate, analyzeGoalsVsCurrentState, save, cache
-│   ├── bodyType.js       # Класифікація типу фігури (apple/pear/hourglass/v_shape тощо)
+│   ├── bodyType.js       # Тип фігури (потрібні shoulders/waist/glutes/height/**wrist**)
 │   ├── bodyMetrics.js    # WH/BMI розрахунки, порогові значення
 │   ├── schedule.js       # Розклад, слоти, календар
 │   ├── training.js       # Тренування (учень/тренер), завершення, автопрогресія
