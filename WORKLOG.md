@@ -43,7 +43,7 @@
 - **Scope**: профіль тренера / Навігатор
 - **Що:** прибрано «Навіщо…» з Оновити заміри та Бажані параметри; лишилось у Мої показники тіла. studentHints оновлено; coach tip про клієнта OK.
 - **Файли:** `lib/profile.js`, `lib/profileBodyGoals.js`, `lib/studentHints.js`, docs
-- **Commit:** pending
+- **Commit:** `1046b20`
 
 ### 2026-11-12 — Реєстрація: стать перед імʼям  _(status: shipped)_
 
