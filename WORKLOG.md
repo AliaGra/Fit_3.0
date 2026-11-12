@@ -43,7 +43,7 @@
 - **Scope**: профіль / БД-доки / бізнес-логіка
 - **Що:** кнопка Ягодиці в самозамірах; еталон measurements_history + user_body_goals; goal_hips = glutes.
 - **Файли:** `lib/profile.js`, SQL etalon, docs
-- **Commit:** pending
+- **Commit:** `4e2b005`
 
 ### 2026-11-12 — Тип фігури: wrist обовʼязковий  _(status: shipped)_
 
