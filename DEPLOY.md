@@ -54,6 +54,7 @@
    - Нагадування учням: `GET https://<your-app>.up.railway.app/cron/reminders?secret=<REMINDER_CRON_SECRET>`
    - Нагадування тренеру про ревізію плану: `GET https://<your-app>.up.railway.app/cron/plan-revision?secret=<REMINDER_CRON_SECRET>` (або `PLAN_REVISION_CRON_SECRET`)
    - Автопродовження слотів: `GET https://<your-app>.up.railway.app/cron/slot-auto-extend?secret=<REMINDER_CRON_SECRET>` (рекомендовано раз на добу)
+   - Дні народження: `GET https://<your-app>.up.railway.app/cron/birthday-reminders?secret=<REMINDER_CRON_SECRET>` (рекомендовано раз на добу, ранок Київ)
 
 ## Перевірка
 
@@ -77,3 +78,4 @@
 - Нагадування тренеру про ревізію плану: `GET https://<your-app>.up.railway.app/cron/plan-revision?secret=<REMINDER_CRON_SECRET>` (або `PLAN_REVISION_CRON_SECRET`)
 - Тижневий AI-дайджест для тренерів: `GET https://<your-app>.up.railway.app/cron/weekly-digest?secret=<REMINDER_CRON_SECRET>` (рекомендований розклад: щопонеділка о 08:00)
 - Автопродовження слотів тренерів: `GET https://<your-app>.up.railway.app/cron/slot-auto-extend?secret=<REMINDER_CRON_SECRET>` (рекомендовано раз на добу; якщо до останнього слота < 14 днів — додає ще 7 днів і повідомляє тренера)
+- Дні народження: `GET https://<your-app>.up.railway.app/cron/birthday-reminders?secret=<REMINDER_CRON_SECRET>` (раз на добу; за 3/2/1 день пари тренер↔учень; у день ДН — вітання від платформи)

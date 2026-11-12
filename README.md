@@ -114,5 +114,6 @@ Telegram-бот на Node.js для керування тренуваннями:
 - **GET /cron/reminders?secret=XXX** — нагадування учням перед тренуванням. Запускати по розкладу (наприклад щогодини). Секрет: `REMINDER_CRON_SECRET`.
 - **GET /cron/plan-revision?secret=XXX** — нагадування тренеру про ревізію плану (valid_until минув; термін ревізії revision_weeks за рівнем: 10/7/5 тиж.). Секрет: `REMINDER_CRON_SECRET` або `PLAN_REVISION_CRON_SECRET`.
 - **GET /cron/subscription-reminders?secret=XXX** — нагадування про закінчення абонемента залу (за 3 і 2 дні до end_date). Надсилається користувачу в бот. Секрет: `REMINDER_CRON_SECRET`. Рекомендовано запускати раз на добу.
+- **GET /cron/birthday-reminders?secret=XXX** — ДН: за 3/2/1 день тренер↔учень; у день ДН — вітання від платформи. Секрет: `REMINDER_CRON_SECRET`. Рекомендовано раз на добу (ранок Київ). Міграція: `supabase_migration_birthday_reminders.sql`.
 
 Деталі змінних середовища — у **DEPLOY.md** та **Підключення_AI_покроково.md**.

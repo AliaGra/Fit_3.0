@@ -204,6 +204,20 @@ CREATE INDEX IF NOT EXISTS broadcast_log_venue_created_idx
 CREATE INDEX IF NOT EXISTS broadcast_log_audience_created_idx
   ON broadcast_log (audience_type, created_at DESC);
 
+-- 10c. Дедуп нагадувань / вітань з ДН
+-- Міграція: supabase_migration_birthday_reminders.sql
+CREATE TABLE IF NOT EXISTS birthday_reminders_sent (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_chat_id text NOT NULL,
+  subject_chat_id text NOT NULL,
+  kind text NOT NULL,
+  days_before integer NOT NULL,
+  year integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS birthday_reminders_sent_uniq
+  ON birthday_reminders_sent (recipient_chat_id, subject_chat_id, kind, days_before, year);
+
 -- Дозволи для анонімного API (якщо будете вставляти через API з anon-ключем)
 ALTER TABLE city_list ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
