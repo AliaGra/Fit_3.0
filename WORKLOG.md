@@ -38,6 +38,13 @@
 
 ## Shipped (main)
 
+### 2026-11-12 — BODY_WHY лише в Мої показники тіла  _(status: shipped)_
+
+- **Scope**: профіль тренера / Навігатор
+- **Що:** прибрано «Навіщо…» з Оновити заміри та Бажані параметри; лишилось у Мої показники тіла. studentHints оновлено; coach tip про клієнта OK.
+- **Файли:** `lib/profile.js`, `lib/profileBodyGoals.js`, `lib/studentHints.js`, docs
+- **Commit:** pending
+
 ### 2026-11-12 — Реєстрація: стать перед імʼям  _(status: shipped)_
 
 - **Scope**: реєстрація / доки / Навігатор (аудит)
