@@ -44,6 +44,8 @@
 - `broadcast_log` — журнал розсилок
 - `birthday_reminders_sent` — дедуп ДН
 - `reminders_sent` — дедуп нагадувань про слоти
+- `coach_inquiries` — звернення з публічної картки (не клієнт → тренер); `open`/`answered`; `reminder_sent_at`
+- `users.coach_inquiry_auto_reply` — автовідповідь на звернення (default true)
 - `user_reviews` — відгуки + модерація
 - `ai_generated_content` — лог AI
 - `admin_log`, `support_requests`, `logs`

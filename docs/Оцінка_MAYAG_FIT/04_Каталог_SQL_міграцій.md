@@ -92,6 +92,7 @@
 | `supabase_migration_broadcast_ads.sql` | ads_opt_in + broadcast_log |
 | `supabase_migration_broadcast_potential_v11.sql` | oblast у broadcast_log |
 | `supabase_migration_birthday_reminders.sql` | Дедуп ДН-нагадувань |
+| `supabase_migration_coach_inquiries.sql` | Звернення з публічної картки + `coach_inquiry_auto_reply` |
 | `supabase_migration_user_reviews.sql` | Відгуки |
 | `supabase_migration_ai_content.sql` | ai_generated_content |
 | `supabase_migration_admin_log.sql` | Журнал адміна |
