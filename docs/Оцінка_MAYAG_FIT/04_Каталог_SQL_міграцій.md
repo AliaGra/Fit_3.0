@@ -1,8 +1,9 @@
 # Каталог SQL-міграцій MAYAG FIT
 
 **Призначення:** фіксація **реальної еволюції** схеми поверх еталону `Supabase_створення_таблиць_FIT3.sql`.  
-**Кількість файлів:** ~69 (`supabase_migration_*.sql` у корені репо).  
-**Застосування:** вручну в Supabase SQL Editor (або скриптом); порядок — за залежностями домену.
+**Кількість файлів:** 70+ (`supabase_migration_*.sql` у корені репо).  
+**Застосування:** вручну в Supabase SQL Editor (або скриптом); порядок — за залежностями домену.  
+**Оновлення 13–14.11:** групові картка/модерація, training_types v2, nutrition (коментар modes).
 
 ---
 
@@ -14,8 +15,10 @@
 | `supabase_migration_users_is_blocked.sql` | Блок користувача |
 | `supabase_migration_users_telegram_username.sql` | Telegram username |
 | `supabase_migration_users_accent_avoid_zones.sql` | Зони акценту/уникнення |
-| `supabase_migration_users_coach_training_types.sql` | Типи тренувань тренера |
+| `supabase_migration_users_coach_training_types.sql` | Типи тренувань тренера (базово) |
+| `supabase_migration_coach_training_types_v2.sql` | personal/split/trio/group; legacy individual; ідемпотентно |
 | `supabase_migration_users_coach_service_modes.sql` | Offline/online/programs |
+| `supabase_migration_coach_service_nutrition.sql` | Коментар modes: + `nutrition` (план харчування) |
 | `supabase_migration_users_client_service_modes.sql` | Режими послуг клієнта |
 | `supabase_migration_users_coach_group_training_details.sql` | Деталі групових |
 | `supabase_migration_users_venues_location_notify.sql` | Підписка на нові заклади в місті |
@@ -78,6 +81,8 @@
 | `supabase_migration_venue_managers.sql` | Власники |
 | `supabase_migration_coach_venue_owner_link.sql` | Звʼязок тренер–власник |
 | `supabase_migration_coach_group_classes.sql` / `…_schedule.sql` | Групові заняття |
+| `supabase_migration_coach_group_classes_card_v1.sql` | Картка свого заняття (опис, ціна, архів, local_*) |
+| `supabase_migration_coach_group_classes_moderation_v1.sql` | moderation_status (+ archive_pending / restore_pending) |
 | `supabase_gym_subscriptions.sql` / `…_gym_subscriptions_venue.sql` | Абонементи залу |
 
 ## 6. Комунікації, відгуки, AI, адмін
@@ -98,4 +103,4 @@
 
 - Міграції **інкрементальні** і доменні (не один моноліт) — типова зріла еволюція схеми.  
 - Поруч існують one-time скрипти в `scripts/` (wipe, fix slots) — операційні, не частина звичайного деплою схеми.  
-- Нові фічі (розсилка v1.1, ДН) додають **dedup/audit** таблиці, а не ламають ядро `users`.
+- Нові фічі (розсилка v1.1, ДН, групові A–D) додають **dedup/audit** і статуси модерації, а не ламають ядро `users`.
