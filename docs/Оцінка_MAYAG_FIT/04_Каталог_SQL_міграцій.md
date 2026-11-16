@@ -15,6 +15,7 @@
 | `supabase_migration_users_is_blocked.sql` | Блок користувача |
 | `supabase_migration_users_telegram_username.sql` | Telegram username |
 | `supabase_migration_coach_public_contacts.sql` | Публічний телефон і прапорці показу phone/Telegram на картці тренера |
+| `supabase_migration_coach_inquiry_trial_booking.sql` | Пробний запис на слот після відповіді на звернення (offer_booking + student_coach_trial_booking) |
 | `supabase_migration_users_accent_avoid_zones.sql` | Зони акценту/уникнення |
 | `supabase_migration_users_coach_training_types.sql` | Типи тренувань тренера (базово) |
 | `supabase_migration_coach_training_types_v2.sql` | personal/split/trio/group; legacy individual; ідемпотентно |
