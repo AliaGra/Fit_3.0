@@ -1,10 +1,12 @@
 # CALLBACK → FSM STATE → MODULE MATRIX
 
-**Версія:** 1.12  
-**Дата:** 06.11.2026  
+**Версія:** 1.13  
+**Дата:** 16.11.2026  
 **Призначення:** Матриця співвідношень `callback_data`, FSM-станів та обробників. **Продакшен:** Node.js (`lib/router.js`). Розділ «Історичний еталон GAS» збережено лише для порівняння.
 
 **06.11.2026:** хаби картки клієнта `COACH_STU_PROG` / `COACH_STU_FMT` / `COACH_STU_RPT` (`2faa40f`).
+
+**16.11.2026 — звернення + пробний запис (`lib/coachInquiry.js`):** `CI_ASK`…`CI_Q` (меню теми); `CI_REPLY` + FSM `CI_REPLY_PICK_MODE` / `CI_REPLY_INPUT`; `CI_REPLY_OFFER_YES` / `CI_REPLY_OFFER_NO` (текст + запис vs лише текст); `CI_TRIAL_BOOK` → `Schedule.openTrialBookingFromInquiry`. **Реєстрація учня:** `REG_STU_BD_MENU` / `REG_STU_BD_CONT` — після ДН головне меню або продовжити анкету (`lib/registration.js`).
 
 ---
 

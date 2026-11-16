@@ -9,7 +9,7 @@
 ## 1. Домени сутностей (групи)
 
 ### Користувачі та профіль
-- `users` — центральна сутність (роль, coach_id, місто/область, заміри, зони, ads_opt_in, архів/блок, фото картки…)
+- `users` — центральна сутність (роль, coach_id, місто/область, заміри, зони, ads_opt_in, архів/блок, фото картки…; **16.11:** `public_phone`, `public_phone_visible`, `public_telegram_visible` — публічна картка тренера)
 - `users.coach_training_types` — `personal` / `split` / `trio` / `group` (legacy `individual` → personal+split+trio)
 - `users.coach_service_modes` — `offline` / `online` / `programs` / **`nutrition`**
 - `bot_state` — FSM JSON по chat_id
@@ -44,7 +44,8 @@
 - `broadcast_log` — журнал розсилок
 - `birthday_reminders_sent` — дедуп ДН
 - `reminders_sent` — дедуп нагадувань про слоти
-- `coach_inquiries` — звернення з публічної картки (не клієнт → тренер); `open`/`answered`; `reminder_sent_at`
+- `coach_inquiries` — звернення з публічної картки (не клієнт → тренер); `open`/`answered`; `reminder_sent_at`; **`offer_booking`** (чи тренер запропонував запис на слот, 16.11)
+- `student_coach_trial_booking` — 1 пробна спроба запису на пару учень–тренер після звернення (`used_at`, 16.11)
 - `users.coach_inquiry_auto_reply` — автовідповідь на звернення (default true)
 - `user_reviews` — відгуки + модерація
 - `ai_generated_content` — лог AI
