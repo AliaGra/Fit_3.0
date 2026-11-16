@@ -84,3 +84,18 @@ user_reviews (author_chat_id → target_chat_id)
 | Ідемпотентність cron | окремі dedup-таблиці (reminders, birthday, flags на subscriptions) |
 
 RLS у міграціях зазвичай дозволяє anon для серверного доступу бота (ключ на Railway) — операційна модель «backend-only».
+
+---
+
+## 4. Життєвий цикл учня в БД (адмін-видалення)
+
+При **`adminDeleteStudentCascade`** (адмін-бот / help-оператор, `lib/supabase.js`):
+
+| Дія | Таблиці / поля |
+|-----|----------------|
+| Видаляються повністю | `users` (PK `chat_id`), плани учня, `bot_training_data`, `measurements_history`, `user_body_goals`, `user_medical_conditions`, `gym_subscriptions`, `user_venues`, цикл, custom exercises, `user_reviews` (автор/ціль), `support_requests`, `ai_generated_content` (`entity_id`), `bot_state`, `pricing` (`student_id`), … |
+| Прибираються сліди по chat_id | `coach_inquiries` (`from_chat_id`; також `coach_chat_id` при delete тренера), `student_coach_trial_booking`, `birthday_reminders_sent` (recipient/subject), **`admin_log`** (`target_user_chat_id`) |
+| Розклад тренера | `workout_schedule`: зі слотів учня знято `student_id`; не-COMPLETED → `AVAILABLE`; **COMPLETED** — статус лишається, PII учня немає |
+| Лишається (не дані учня) | Записи тренера, заклади, слоти COMPLETED без `student_id`, новий `admin_log` після delete **без** `target_user_chat_id` (лише `role` / `cascade`) |
+
+**Блок** (`users.is_blocked`) — профіль і таблиці **не** видаляються.

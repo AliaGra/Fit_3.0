@@ -4,7 +4,8 @@
 **Кількість файлів:** 70+ (`supabase_migration_*.sql` у корені репо).  
 **Застосування:** вручну в Supabase SQL Editor (або скриптом); порядок — за залежностями домену.  
 **Оновлення 13–14.11:** групові картка/модерація, training_types v2, nutrition (коментар modes).  
-**Оновлення 15–16.11:** `coach_public_contacts`, `coach_inquiry_trial_booking` (доповнення до `coach_inquiries` 14.11).
+**Оновлення 15–16.11:** `coach_public_contacts`, `coach_inquiry_trial_booking` (доповнення до `coach_inquiries` 14.11).  
+**Повне видалення учня (16.11, код):** без нової міграції — каскад у `lib/supabase.js` чистить `coach_inquiries`, `student_coach_trial_booking`, `birthday_reminders_sent`, `admin_log` (див. `06_Адміністративний_бот.md`).
 
 ---
 
