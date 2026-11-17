@@ -13,8 +13,15 @@ CREATE TABLE IF NOT EXISTS public.coach_venue_economics (
     CHECK (session_mode IN ('unset', 'percent', 'fixed')),
   session_percent numeric
     CHECK (session_percent IS NULL OR (session_percent >= 0 AND session_percent <= 100)),
+  /** @deprecated єдиний фікс; див. session_fixed_personal/split/trio + v2 міграцію */
   session_fixed_amount numeric
     CHECK (session_fixed_amount IS NULL OR session_fixed_amount >= 0),
+  session_fixed_personal numeric
+    CHECK (session_fixed_personal IS NULL OR session_fixed_personal >= 0),
+  session_fixed_split numeric
+    CHECK (session_fixed_split IS NULL OR session_fixed_split >= 0),
+  session_fixed_trio numeric
+    CHECK (session_fixed_trio IS NULL OR session_fixed_trio >= 0),
 
   group_mode text NOT NULL DEFAULT 'unset'
     CHECK (group_mode IN ('unset', 'percent_subs', 'fixed_per_attendee')),
@@ -33,7 +40,7 @@ COMMENT ON TABLE public.coach_venue_economics IS
   'Умови розрахунку тренера з залом: % або фікс (сесії) + % абонементів чи фікс за відвідувача (групові).';
 
 COMMENT ON COLUMN public.coach_venue_economics.session_mode IS
-  'unset | percent (% від повної gross сесії) | fixed (грн за 1 проведену сесію)';
+  'unset | percent (% від повної gross сесії, спільний) | fixed (окремо personal/split/trio)';
 
 COMMENT ON COLUMN public.coach_venue_economics.group_mode IS
   'unset | percent_subs (% від оплат групових абонементів у місяці start_date) | fixed_per_attendee (грн × відвідувач на заняття)';
